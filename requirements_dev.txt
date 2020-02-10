@@ -1,0 +1,4 @@
+pytest
+urllib3>=1.21.1,<1.22
+Sphinx>=1.8.0,<1.9
+sphinx_rtd_theme

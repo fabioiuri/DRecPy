@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>DRecPy.Recommender package &mdash; DRecPy 1 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="DRecPy.Recommender.Baseline package" href="DRecPy.Recommender.Baseline.html" />
+    <link rel="prev" title="DRecPy.Dataset package" href="DRecPy.Dataset.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> DRecPy
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">User Guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../user_guide/creating_recommender.html">Creating Novel Recommenders</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Documentation</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="DRecPy.Dataset.html">DRecPy.Dataset package</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DRecPy.Recommender package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="DRecPy.Recommender.Baseline.html">DRecPy.Recommender.Baseline package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-DRecPy.Recommender.cdae">DRecPy.Recommender.cdae module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-DRecPy.Recommender.dmf">DRecPy.Recommender.dmf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-DRecPy.Recommender.recommender_abc">DRecPy.Recommender.recommender_abc module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-DRecPy.Recommender.test">DRecPy.Recommender.test module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-DRecPy.Recommender">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="DRecPy.Sampler.html">DRecPy.Sampler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="DRecPy.Evaluation.html">DRecPy.Evaluation package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">DRecPy</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>DRecPy.Recommender package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/api_docs/DRecPy.Recommender.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="drecpy-recommender-package">
+<h1>DRecPy.Recommender package<a class="headerlink" href="#drecpy-recommender-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="DRecPy.Recommender.Baseline.html">DRecPy.Recommender.Baseline package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="DRecPy.Recommender.Baseline.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DRecPy.Recommender.Baseline.html#drecpy-recommender-baseline-cf-module">DRecPy.Recommender.Baseline.cf module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="DRecPy.Recommender.Baseline.html#module-DRecPy.Recommender.Baseline">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-DRecPy.Recommender.cdae">
+<span id="drecpy-recommender-cdae-module"></span><h2>DRecPy.Recommender.cdae module<a class="headerlink" href="#module-DRecPy.Recommender.cdae" title="Permalink to this headline">¶</a></h2>
+<p>Implementation of the CDAE model (Collaborative Denoising Auto-Encoder).
+Paper: Wu, Yao, et al. “Collaborative denoising auto-encoders for top-n recommender systems.” Proceedings
+of the Ninth ACM International Conference on Web Search and Data Mining. ACM, 2016.</p>
+<p>Note: gradients are evaluated for all output units (the output unit selection step discussed in the paper is not done).</p>
+<dl class="class">
+<dt id="DRecPy.Recommender.cdae.CDAE">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.cdae.</code><code class="descname">CDAE</code><span class="sig-paren">(</span><em>hidden_factors=50</em>, <em>corruption_level=0.2</em>, <em>loss='mse'</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.cdae.CDAE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+<p>Collaborative Denoising Auto-Encoder (CDAE) recommender model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hidden_factors</strong> – An integer defining the number of units for the hidden layer.</li>
+<li><strong>corruption_level</strong> – A decimal value representing the level of corruption to apply to the
+given interactions / ratings during training.</li>
+<li><strong>loss</strong> – The loss function used to optimize the model. Supported: mse, bce.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For more arguments, refer to the base class: <a class="reference internal" href="#DRecPy.Recommender.RecommenderABC" title="DRecPy.Recommender.RecommenderABC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DRecPy.Recommender.RecommenderABC</span></code></a>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-DRecPy.Recommender.dmf">
+<span id="drecpy-recommender-dmf-module"></span><h2>DRecPy.Recommender.dmf module<a class="headerlink" href="#module-DRecPy.Recommender.dmf" title="Permalink to this headline">¶</a></h2>
+<p>Implementation of the DMF model (Deep Matrix Factorization)
+Paper: Xue, Hong-Jian, et al. “Deep Matrix Factorization Models for Recommender Systems.” IJCAI. 2017.</p>
+<dl class="class">
+<dt id="DRecPy.Recommender.dmf.DMF">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.dmf.</code><code class="descname">DMF</code><span class="sig-paren">(</span><em>user_factors=None</em>, <em>item_factors=None</em>, <em>use_nce=True</em>, <em>l2_norm_vectors=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.dmf.DMF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+<p>Deep Matrix Factorization (DMF) recommender model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>user_factors</strong> – A list containing the number of hidden neurons in each layer of the user NN. Default: [64, 32].</li>
+<li><strong>item_factors</strong> – A list containing the number of hidden neurons in each layer of the item NN. Default: [64, 32].</li>
+<li><strong>use_nce</strong> – A boolean indicating whether to use the normalized cross-entropy described in the paper as the
+loss function or the regular cross-entropy. Default: true.</li>
+<li><strong>l2_norm_vectors</strong> – A boolean indicating if user and item interaction vectors should be l2 normalized before
+being used as input for their respective NNs or not. Default: true.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For more arguments, refer to the base class: <a class="reference internal" href="#DRecPy.Recommender.RecommenderABC" title="DRecPy.Recommender.RecommenderABC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DRecPy.Recommender.RecommenderABC</span></code></a>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-DRecPy.Recommender.recommender_abc">
+<span id="drecpy-recommender-recommender-abc-module"></span><h2>DRecPy.Recommender.recommender_abc module<a class="headerlink" href="#module-DRecPy.Recommender.recommender_abc" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.recommender_abc.</code><code class="descname">RecommenderABC</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base recommender abstract class.</p>
+<p>This class implements the skeleton methods required for building a recommender.
+It provides id-abstraction (handles conversion between raw to internal ids - by ),
+auto-exist-check (if a given user/item is known or not) and all private methods
+are called with internal ids only. All public methods are called with raw ids only.</p>
+<p>The following methods are still required to be implemented: _pre_fit(), _do_batch() and _predict().
+Optionally, these methods can be overridden: _rank() and _recommend().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>verbose</strong> – Optional boolean indicating if the recommender should print progress logs or not.
+Default: False.</li>
+<li><strong>min_interaction</strong> (<em>min_rating</em>) – Optional integer representing the minimum interaction assumed by the recommender model.
+Default: inferred from the dataset.</li>
+<li><strong>max_interaction</strong> (<em>max_rating</em>) – Optional integer representing the maximum interaction assumed by the recommender model.
+Default: inferred from the dataset.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>interaction_dataset</em>, <em>epochs=50</em>, <em>batch_size=32</em>, <em>learning_rate=0.001</em>, <em>neg_ratio=5</em>, <em>reg_rate=0.001</em>, <em>validation_dataset=None</em>, <em>copy_dataset=False</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the provided dataframe and builds id-abstraction, infers min. and max. interactions
+(if not passed through constructor) and calls _fit() to fit the current model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>interaction_dataset</strong> – A interactionsDataset instance containing the training data.</li>
+<li><strong>epochs</strong> – Optional number of epochs to train the model. Default: 50.</li>
+<li><strong>batch_size</strong> – Optional number of data points to use for each epoch to train the model. Default: 32.</li>
+<li><strong>learning_rate</strong> – Optional decimal representing the learning rate of the model. Default: 0.001.</li>
+<li><strong>neg_ratio</strong> – Optional integer that represents the number of negative instances for each positive one.
+Default: 5.</li>
+<li><strong>reg_rate</strong> – Optional decimal representing the model regularization rate. Default: 0.01.</li>
+<li><strong>validation_dataset</strong> – Optional interactionsDataset that should be used for the validation dataset, and it
+is evaluated for each epoch.</li>
+<li><strong>copy_dataset</strong> – Optional boolean indicating weather a copy of the given dataset should be made.
+If set to False, the given dataset instance is used. Defaults: False.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.load">
+<em class="property">static </em><code class="descname">load</code><span class="sig-paren">(</span><em>load_path</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load/import a saved/exported model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>load_path</strong> – A string that represents the path to the saved/exported model.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Recommender model.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>user_id</em>, <em>item_id</em>, <em>skip_errors=False</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a prediction using the provided user_id and item_id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – An integer representing the raw user id.</li>
+<li><strong>item_id</strong> – An integer representing the raw item id.</li>
+<li><strong>skip_errors</strong> – A boolean that controls if errors should be avoided or if they should be be thrown.
+Default: False. An example would be calling predict(None, None): If skip_errors is True,
+then it would return None; else it would throw an error.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A float value representing the predicted interaction for the provided item, user pair. Or None, if
+an error occurs and skip_errors = True.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.rank">
+<code class="descname">rank</code><span class="sig-paren">(</span><em>user_id</em>, <em>item_ids</em>, <em>novelty=True</em>, <em>skip_invalid_items=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.rank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ranks the provided item list for the given user and with the requested characteristics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – A string or integer representing the user id.</li>
+<li><strong>item_ids</strong> – A list of strings or integers representing the ids of the items to rank.</li>
+<li><strong>novelty</strong> – Optional boolean indicating if we only novelty recommendations or not. Default: True.</li>
+<li><strong>n</strong> – Optional integer representing the number of best items to return. Default: len(item_ids).</li>
+<li><strong>skip_invalid_items</strong> – Optional boolean indicating if invalid items should be skipped.
+If set to False, will throw an exception when one is found. Default: True.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A ranked item list in the form of (similarity, item) tuples.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.recommend">
+<code class="descname">recommend</code><span class="sig-paren">(</span><em>user_id</em>, <em>n</em>, <em>novelty=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.recommend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes a recommendation list for the given user and with the requested characteristics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – A string or integer representing the user id.</li>
+<li><strong>n</strong> – An integer representing the number of recommended items.</li>
+<li><strong>novelty</strong> – An optional boolean indicating if we only novelty recommendations or not. Default: True.</li>
+<li><strong>threshold</strong> – Optional float value that represents the similarity value required to consider
+an item to be a useful recommendation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A list containing recommendations in the form of (similarity, item) tuples.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.recommender_abc.RecommenderABC.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>save_path</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.recommender_abc.RecommenderABC.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save/export the current model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>save_path</strong> – A string that represents the path in which the model will be saved.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-DRecPy.Recommender.test">
+<span id="drecpy-recommender-test-module"></span><h2>DRecPy.Recommender.test module<a class="headerlink" href="#module-DRecPy.Recommender.test" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="DRecPy.Recommender.test.Test">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.test.</code><code class="descname">Test</code><span class="sig-paren">(</span><em>n_supported_items=5</em>, <em>A=256</em>, <em>B=128</em>, <em>C=64</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.test.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-DRecPy.Recommender">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-DRecPy.Recommender" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="DRecPy.Recommender.RecommenderABC">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.</code><code class="descname">RecommenderABC</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Base recommender abstract class.</p>
+<p>This class implements the skeleton methods required for building a recommender.
+It provides id-abstraction (handles conversion between raw to internal ids - by ),
+auto-exist-check (if a given user/item is known or not) and all private methods
+are called with internal ids only. All public methods are called with raw ids only.</p>
+<p>The following methods are still required to be implemented: _pre_fit(), _do_batch() and _predict().
+Optionally, these methods can be overridden: _rank() and _recommend().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>verbose</strong> – Optional boolean indicating if the recommender should print progress logs or not.
+Default: False.</li>
+<li><strong>min_interaction</strong> (<em>min_rating</em>) – Optional integer representing the minimum interaction assumed by the recommender model.
+Default: inferred from the dataset.</li>
+<li><strong>max_interaction</strong> (<em>max_rating</em>) – Optional integer representing the maximum interaction assumed by the recommender model.
+Default: inferred from the dataset.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="DRecPy.Recommender.RecommenderABC.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><em>interaction_dataset</em>, <em>epochs=50</em>, <em>batch_size=32</em>, <em>learning_rate=0.001</em>, <em>neg_ratio=5</em>, <em>reg_rate=0.001</em>, <em>validation_dataset=None</em>, <em>copy_dataset=False</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes the provided dataframe and builds id-abstraction, infers min. and max. interactions
+(if not passed through constructor) and calls _fit() to fit the current model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>interaction_dataset</strong> – A interactionsDataset instance containing the training data.</li>
+<li><strong>epochs</strong> – Optional number of epochs to train the model. Default: 50.</li>
+<li><strong>batch_size</strong> – Optional number of data points to use for each epoch to train the model. Default: 32.</li>
+<li><strong>learning_rate</strong> – Optional decimal representing the learning rate of the model. Default: 0.001.</li>
+<li><strong>neg_ratio</strong> – Optional integer that represents the number of negative instances for each positive one.
+Default: 5.</li>
+<li><strong>reg_rate</strong> – Optional decimal representing the model regularization rate. Default: 0.01.</li>
+<li><strong>validation_dataset</strong> – Optional interactionsDataset that should be used for the validation dataset, and it
+is evaluated for each epoch.</li>
+<li><strong>copy_dataset</strong> – Optional boolean indicating weather a copy of the given dataset should be made.
+If set to False, the given dataset instance is used. Defaults: False.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="DRecPy.Recommender.RecommenderABC.load">
+<em class="property">static </em><code class="descname">load</code><span class="sig-paren">(</span><em>load_path</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load/import a saved/exported model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>load_path</strong> – A string that represents the path to the saved/exported model.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Recommender model.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.RecommenderABC.predict">
+<code class="descname">predict</code><span class="sig-paren">(</span><em>user_id</em>, <em>item_id</em>, <em>skip_errors=False</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.predict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a prediction using the provided user_id and item_id.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – An integer representing the raw user id.</li>
+<li><strong>item_id</strong> – An integer representing the raw item id.</li>
+<li><strong>skip_errors</strong> – A boolean that controls if errors should be avoided or if they should be be thrown.
+Default: False. An example would be calling predict(None, None): If skip_errors is True,
+then it would return None; else it would throw an error.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A float value representing the predicted interaction for the provided item, user pair. Or None, if
+an error occurs and skip_errors = True.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.RecommenderABC.rank">
+<code class="descname">rank</code><span class="sig-paren">(</span><em>user_id</em>, <em>item_ids</em>, <em>novelty=True</em>, <em>skip_invalid_items=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.rank" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ranks the provided item list for the given user and with the requested characteristics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – A string or integer representing the user id.</li>
+<li><strong>item_ids</strong> – A list of strings or integers representing the ids of the items to rank.</li>
+<li><strong>novelty</strong> – Optional boolean indicating if we only novelty recommendations or not. Default: True.</li>
+<li><strong>n</strong> – Optional integer representing the number of best items to return. Default: len(item_ids).</li>
+<li><strong>skip_invalid_items</strong> – Optional boolean indicating if invalid items should be skipped.
+If set to False, will throw an exception when one is found. Default: True.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A ranked item list in the form of (similarity, item) tuples.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.RecommenderABC.recommend">
+<code class="descname">recommend</code><span class="sig-paren">(</span><em>user_id</em>, <em>n</em>, <em>novelty=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.recommend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes a recommendation list for the given user and with the requested characteristics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>user_id</strong> – A string or integer representing the user id.</li>
+<li><strong>n</strong> – An integer representing the number of recommended items.</li>
+<li><strong>novelty</strong> – An optional boolean indicating if we only novelty recommendations or not. Default: True.</li>
+<li><strong>threshold</strong> – Optional float value that represents the similarity value required to consider
+an item to be a useful recommendation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A list containing recommendations in the form of (similarity, item) tuples.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="DRecPy.Recommender.RecommenderABC.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>save_path</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.RecommenderABC.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save/export the current model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>save_path</strong> – A string that represents the path in which the model will be saved.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="DRecPy.Recommender.DMF">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.</code><code class="descname">DMF</code><span class="sig-paren">(</span><em>user_factors=None</em>, <em>item_factors=None</em>, <em>use_nce=True</em>, <em>l2_norm_vectors=True</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.DMF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+<p>Deep Matrix Factorization (DMF) recommender model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>user_factors</strong> – A list containing the number of hidden neurons in each layer of the user NN. Default: [64, 32].</li>
+<li><strong>item_factors</strong> – A list containing the number of hidden neurons in each layer of the item NN. Default: [64, 32].</li>
+<li><strong>use_nce</strong> – A boolean indicating whether to use the normalized cross-entropy described in the paper as the
+loss function or the regular cross-entropy. Default: true.</li>
+<li><strong>l2_norm_vectors</strong> – A boolean indicating if user and item interaction vectors should be l2 normalized before
+being used as input for their respective NNs or not. Default: true.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For more arguments, refer to the base class: <a class="reference internal" href="#DRecPy.Recommender.RecommenderABC" title="DRecPy.Recommender.RecommenderABC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DRecPy.Recommender.RecommenderABC</span></code></a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="DRecPy.Recommender.CDAE">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.</code><code class="descname">CDAE</code><span class="sig-paren">(</span><em>hidden_factors=50</em>, <em>corruption_level=0.2</em>, <em>loss='mse'</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.CDAE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+<p>Collaborative Denoising Auto-Encoder (CDAE) recommender model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hidden_factors</strong> – An integer defining the number of units for the hidden layer.</li>
+<li><strong>corruption_level</strong> – A decimal value representing the level of corruption to apply to the
+given interactions / ratings during training.</li>
+<li><strong>loss</strong> – The loss function used to optimize the model. Supported: mse, bce.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>For more arguments, refer to the base class: <a class="reference internal" href="#DRecPy.Recommender.RecommenderABC" title="DRecPy.Recommender.RecommenderABC"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DRecPy.Recommender.RecommenderABC</span></code></a>.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="DRecPy.Recommender.Test">
+<em class="property">class </em><code class="descclassname">DRecPy.Recommender.</code><code class="descname">Test</code><span class="sig-paren">(</span><em>n_supported_items=5</em>, <em>A=256</em>, <em>B=128</em>, <em>C=64</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#DRecPy.Recommender.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#DRecPy.Recommender.recommender_abc.RecommenderABC" title="DRecPy.Recommender.recommender_abc.RecommenderABC"><code class="xref py py-class docutils literal notranslate"><span class="pre">DRecPy.Recommender.recommender_abc.RecommenderABC</span></code></a></p>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="DRecPy.Recommender.Baseline.html" class="btn btn-neutral float-right" title="DRecPy.Recommender.Baseline package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="DRecPy.Dataset.html" class="btn btn-neutral float-left" title="DRecPy.Dataset package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, fabioiuri@live.com
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

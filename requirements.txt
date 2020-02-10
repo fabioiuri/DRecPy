@@ -1,0 +1,7 @@
+scipy>=1.2,<1.3
+joblib>=0.13,<0.14
+pandas>=0.24,<0.25
+numpy>=1.16,<1.17
+sklearn>=0.20<0.21
+matplotlib
+tensorflow
