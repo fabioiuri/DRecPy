@@ -14,14 +14,18 @@ with open("README.md", "r") as fh:
 
 setup(
     name="DRecPy",
-    version="0.0.1",
+    version="0.0.0",
     author="Fabio Colaço",
-    author_email="fcolaco@lasige.di.fc.ul.pt",
-    description="todo", #todo
+    author_email="fabioiuri@live.com",
+    description="Description Deep Recommenders with Python: "
+                "A Python framework for building Deep Learning based Recommender Systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="", # todo
+    url="https://github.com/fabioiuri/DRecPy",
     packages=find_packages(exclude=['tests*']),
-    classifiers=[ ], # todo
-    keywords="todo" #todo
+    classifiers=['Intended Audience :: Developers', 'Intended Audience :: Education',
+                 'Intended Audience :: Science/Research', 'License :: OSI Approved :: MIT License',
+                 'Programming Language :: Python :: 3', 'Development Status :: 2 - Pre-Alpha',
+                 'Topic :: Scientific/Engineering'],
+    keywords="recommender, recommendation, system, machine learning, deep learning"
 )
