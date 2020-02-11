@@ -4,10 +4,10 @@ DRecPy.Recommender.Baseline package
 Submodules
 ----------
 
-DRecPy.Recommender.Baseline.cf module
+DRecPy.Recommender.Baseline.knn module
 -------------------------------------
 
-.. automodule:: DRecPy.Recommender.Baseline.cf
+.. automodule:: DRecPy.Recommender.Baseline.knn
     :members:
     :undoc-members:
     :show-inheritance:
