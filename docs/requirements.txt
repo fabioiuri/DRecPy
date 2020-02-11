@@ -3,3 +3,4 @@ joblib
 tqdm
 matplotlib
 sklearn
+tensorflow-cpu
