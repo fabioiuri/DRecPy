@@ -1,3 +1,4 @@
 sphinx
 joblib
 tqdm
+matplotlib
