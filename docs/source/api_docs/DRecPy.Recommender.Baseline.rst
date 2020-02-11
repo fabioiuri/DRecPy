@@ -5,7 +5,7 @@ Submodules
 ----------
 
 DRecPy.Recommender.Baseline.knn module
--------------------------------------
+--------------------------------------
 
 .. automodule:: DRecPy.Recommender.Baseline.knn
     :members:
