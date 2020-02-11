@@ -4,3 +4,4 @@ tqdm
 matplotlib
 sklearn
 tensorflow-cpu
+pandas
