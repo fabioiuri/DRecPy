@@ -35,14 +35,6 @@ DRecPy.Recommender.recommender\_abc module
     :undoc-members:
     :show-inheritance:
 
-DRecPy.Recommender.test module
-------------------------------
-
-.. automodule:: DRecPy.Recommender.test
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 
 Module contents
 ---------------
