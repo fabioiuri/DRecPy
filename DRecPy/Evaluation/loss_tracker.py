@@ -9,6 +9,9 @@ class LossTracker:
         self.epoch_losses = []
         self.curr_avg_epoch_loss = 0
 
+        self.epoch_callback_results = {}
+        self.called_epochs = []
+
     def add_batch_loss(self, loss):
         self.losses.append(loss)
         self.curr_avg_loss = self.curr_avg_loss + (loss - self.curr_avg_loss) / len(self.losses)
@@ -29,12 +32,35 @@ class LossTracker:
         self.epoch_losses = []
         self.curr_avg_epoch_loss = 0
 
-    def display_graph(self, model_name=None):
-        fig, axes = plt.subplots(1)
-        if model_name is None: fig.suptitle('Loss per Epoch')
-        else: fig.suptitle(f'Loss per Epoch of {model_name}')
+    def add_epoch_callback_result(self, name, result, epoch):
+        if name not in self.epoch_callback_results:
+            self.epoch_callback_results[name] = []
 
-        axes.set_ylabel("Loss", fontsize=12)
-        axes.set_xlabel("Epoch", fontsize=12)
-        axes.plot(self.epoch_losses)
+        self.epoch_callback_results[name].append(result)
+        if len(self.called_epochs) == 0 or self.called_epochs[-1] < epoch:
+            self.called_epochs.append(epoch)
+
+    def display_graph(self, model_name=None):
+        if len(self.epoch_callback_results) > 0:
+            fig, axes = plt.subplots(nrows=2, ncols=1)
+        else:
+            fig, axes = plt.subplots(nrows=1, ncols=1)
+            axes = [axes]
+
+        if model_name is None:
+            fig.suptitle('Loss per Epoch')
+        else:
+            fig.suptitle(f'Loss per Epoch of {model_name}')
+
+        axes[0].set_ylabel("Loss", fontsize=12)
+        axes[0].plot(self.epoch_losses)
+
+        if len(axes) > 1:
+            axes[1].set_ylabel("Value", fontsize=12)
+            for k in self.epoch_callback_results:
+                axes[1].plot(self.called_epochs, self.epoch_callback_results[k], label=k)
+
+        axes[-1].set_xlabel("Epoch", fontsize=12)
+
+        plt.legend()
         plt.show()
