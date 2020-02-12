@@ -56,12 +56,12 @@ def predictive_evaluation(model, ds_test, n_test_predictions=None, skip_errors=F
     metric_values = {}
     for m in metrics:
         params = {**metrics[m][1], 'y_true': y_true, 'y_pred': y_pred}
-        metric_values[m] = metrics[m][0](**params)
+        metric_values[m] = round(metrics[m][0](**params), 4)
 
     return metric_values
 
 
-def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, neg_interactions=99, k=10,
+def ranking_evaluation(model, ds_test=None, n_test_users=None, pos_interactions=1, neg_interactions=99, k=10,
                        interaction_threshold=0, seed=None, **kwds):
     """
 
@@ -74,6 +74,7 @@ def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, ne
         k:
         interaction_threshold:
         seed:
+        metrics:
         **kwds:
 
     Returns:
@@ -88,6 +89,11 @@ def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, ne
     if type(k) is not list: k = [k]
     for k_ in k:
         assert k_ > 0, f'k ({k_}) should be > 0.'
+
+    train_evaluation = False
+    if ds_test is None or ds_test == model.interaction_dataset:
+        train_evaluation = True
+        ds_test = model.interaction_dataset
 
     rng = random.Random(seed)
 
@@ -126,7 +132,6 @@ def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, ne
     for user in _iter:
         if num_rankings_made >= n_test_users: break  # reach max number of rankings
 
-        user_train_pos_ds = model.interaction_dataset.select(f'user == {user}, interaction > {interaction_threshold}')
         user_test_ds = ds_test.select(f'user == {user}')
         user_test_pos_ds = user_test_ds.select(f'interaction > {interaction_threshold}')
 
@@ -142,18 +147,22 @@ def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, ne
 
         # get negative interactions
         user_non_interacted_items = []
-        while len(user_non_interacted_items) < neg_interactions:
-            new_item = rng.randint(0, model.n_items - 1)
-            if user_test_pos_ds.exists(f'item == {new_item}') or user_train_pos_ds.exists(f'item == {new_item}'):
-                continue
-            user_non_interacted_items.append(new_item)
+        if not train_evaluation:
+            user_train_pos_ds = model.interaction_dataset.select(f'user == {user}, interaction > {interaction_threshold}')
+            while len(user_non_interacted_items) < neg_interactions:
+                new_item = rng.randint(0, model.n_items - 1)
+                if user_test_pos_ds.exists(f'item == {new_item}') or user_train_pos_ds.exists(f'item == {new_item}'):
+                    continue
+                user_non_interacted_items.append(new_item)
 
         # join and shuffle all items
         all_items = user_interacted_items + user_non_interacted_items
         rng.shuffle(all_items)
 
         # rank according to model
-        recommendations = [item for _, item in model.rank(user, all_items)]
+        recommendations = [item for _, item in model.rank(user, all_items, novelty=not train_evaluation)]
+        if len(all_items) == 0:
+            continue
 
         # evaluate performance
         for m in metrics:
@@ -175,7 +184,7 @@ def ranking_evaluation(model, ds_test, n_test_users=None, pos_interactions=1, ne
 
         num_rankings_made += 1
 
-    results = {m + f'@{k}': metric_sums[(m, k)] / num_rankings_made for m, k in metric_sums}
+    results = {m + f'@{k}': round(metric_sums[(m, k)] / num_rankings_made, 4) for m, k in metric_sums}
 
     if kwds.get('verbose', True) and len(k) > 1:
         fig, axes = plt.subplots(1)
