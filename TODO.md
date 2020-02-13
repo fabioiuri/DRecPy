@@ -7,3 +7,4 @@
 - How to save Recommenders? they depend on ratings dataset... is it possible to decouple? if not, what is the best way?
 - Add NAN check for when bad delimiters are provided on interaction dataset imports
 - Add feature to compute validation loss on the provided validation dataset during training
+- Make evaluation processes sample test users instead of running each sequentially
