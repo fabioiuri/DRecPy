@@ -8,3 +8,4 @@
 - Add NAN check for when bad delimiters are provided on interaction dataset imports
 - Add feature to compute validation loss on the provided validation dataset during training
 - Make evaluation processes sample test users instead of running each sequentially
+- Add benchmark section to the readme
