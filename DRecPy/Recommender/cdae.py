@@ -16,11 +16,11 @@ class CDAE(RecommenderABC):
         hidden_factors: An integer defining the number of units for the hidden layer.
         corruption_level: A decimal value representing the level of corruption to apply to the
             given interactions / ratings during training.
-        loss: The loss function used to optimize the model. Supported: mse, bce.
+        loss: The loss function used to optimize the model. Supported: mse, bce. Default: bce.
 
     For more arguments, refer to the base class: :obj:`DRecPy.Recommender.RecommenderABC`.
     """
-    def __init__(self, hidden_factors=50, corruption_level=0.2, loss='mse', **kwds):
+    def __init__(self, hidden_factors=50, corruption_level=0.2, loss='bce', **kwds):
         super(CDAE, self).__init__(**kwds)
 
         self.hidden_factors = hidden_factors
