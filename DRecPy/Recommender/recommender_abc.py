@@ -52,7 +52,7 @@ class RecommenderABC(ABC):
         self.predicts_wo_item = False  # if it supports predict(uid, None)
 
     def fit(self, interaction_dataset, epochs=50, batch_size=32, learning_rate=0.001, neg_ratio=5, reg_rate=0.001,
-            validation_dataset=None, copy_dataset=False, **kwds):
+            copy_dataset=False, **kwds):
         """Processes the provided dataframe and builds id-abstraction, infers min. and max. interactions
         (if not passed through constructor) and calls _fit() to fit the current model.
 
@@ -64,8 +64,10 @@ class RecommenderABC(ABC):
             neg_ratio: Optional integer that represents the number of negative instances for each positive one.
                 Default: 5.
             reg_rate: Optional decimal representing the model regularization rate. Default: 0.01.
-            validation_dataset: Optional interactionsDataset that should be used for the validation dataset, and it
-                is evaluated for each epoch.
+            epoch_callback_fn: Optional function that is called, for each epoch_callback_freq, with the model at its
+                current state.
+            epoch_callback_freq: Optional integer representing the frequency in which the epoch_callback_fn is called.
+                Default: 5 (called every 5 epochs).
             copy_dataset: Optional boolean indicating weather a copy of the given dataset should be made.
                 If set to False, the given dataset instance is used. Defaults: False.
 
@@ -90,6 +92,55 @@ class RecommenderABC(ABC):
         self._loss_tracker = LossTracker()
 
         # Log extra info
+        self._log_initial_info()
+
+        self._log('Creating auxiliary structures...')
+        self._pre_fit(learning_rate, neg_ratio, reg_rate, **kwds)
+        self.fitted = True  # should be able to make predictions after pre fit
+
+        epoch_callback_fn = kwds.get('epoch_callback_fn', None)
+        epoch_callback_res = None
+        epoch_callback_freq = kwds.get('epoch_callback_freq', 5)
+        curr_epoch_callback_count = 0
+
+        try:
+            _iter = range(1, epochs+1)
+            if self.verbose:
+                _iter = tqdm(range(1, epochs+1), total=epochs, desc='Fitting model...', position=0, leave=True)
+            for e in _iter:
+                self._loss_tracker.reset_batch_losses()
+                for b in range(1, batch_size+1):
+                    loss = self._do_batch(**kwds)
+                    if self.verbose:
+                        if loss is None: raise Exception('Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
+                        self._loss_tracker.add_batch_loss(loss)
+
+                curr_epoch_callback_count -= 1
+
+                if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
+                    curr_epoch_callback_count = epoch_callback_freq
+                    epoch_callback_res = epoch_callback_fn(self)
+                    assert type(epoch_callback_res) is dict, \
+                        f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
+
+                if self.verbose:
+                    progress_desc = f'Fitting model... Epoch {e} Avg. Loss: {self._loss_tracker.get_batch_avg_loss():.4f}'
+                    if epoch_callback_res is not None:
+                        for k in epoch_callback_res:
+                            self._loss_tracker.add_epoch_callback_result(k, epoch_callback_res[k], e)
+                            progress_desc += f' | {k}: {epoch_callback_res[k]}'
+                        epoch_callback_res = None
+
+                    _iter.set_description(progress_desc)
+                    self._loss_tracker.update_epoch_loss()  # update avg training loss
+
+            if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
+        except NotImplementedError:
+            pass
+
+        self._log('Model fitted.')
+
+    def _log_initial_info(self):
         self._log(f'Max. interaction value: {self.max_interaction}')
         self._log(f'Min. interaction value: {self.min_interaction}')
         self._log(f'Number of unique users: {self.n_users}')
@@ -98,34 +149,6 @@ class RecommenderABC(ABC):
         matrix_size = self.n_users * self.n_items
         sparsity = round(100 * (1 - (self.n_rows / matrix_size)), 4)
         self._log(f'Sparsity level: approx. {sparsity}%')
-
-        self._log('Creating auxiliary structures...')
-        self._pre_fit(learning_rate, neg_ratio, reg_rate, **kwds)
-
-        try:
-            _iter = range(1, epochs+1)
-            if self.verbose:
-                import time  # to avoid line issue
-                time.sleep(0.1)
-
-                _iter = tqdm(range(1, epochs+1), total=epochs, desc='Fitting model...')
-            for e in _iter:
-                self._loss_tracker.reset_batch_losses()
-                for b in range(1, batch_size+1):
-                    loss = self._do_batch(**kwds)
-                    if self.verbose:
-                        if loss is None: raise Exception('Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
-                        self._loss_tracker.add_batch_loss(loss)
-                if self.verbose:
-                    _iter.set_description(f'Fitting model... Epoch {e} Avg. Loss: {self._loss_tracker.get_batch_avg_loss():.4f}')
-                if self.verbose: self._loss_tracker.update_epoch_loss()  # update avg training loss
-
-            if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
-        except NotImplementedError:
-            pass
-
-        self.fitted = True
-        self._log('Model fitted.')
 
     @abstractmethod
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
