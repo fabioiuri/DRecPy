@@ -10,7 +10,7 @@ ds_test = get_test_dataset('ml-100k')
 
 start_train = time.time()
 cdae = CDAE(min_interaction=0, seed=10)
-cdae.fit(ds_train, epochs=100)
+cdae.fit(ds_train, epochs=50)
 print("Training took", time.time() - start_train)
 
 print(ranking_evaluation(cdae, ds_test, n_test_users=100, seed=10))
