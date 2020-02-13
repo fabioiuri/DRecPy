@@ -3,6 +3,7 @@ Release steps:
 - Check if tests are passing
 - Update and build new dobs (make clean, make html)
 - Add git release tag (git tag v0.0.0, git push --tags)
+- Clean dist folder
 - Build package (python setup.py sdist bdist_wheel)
 - Upload package (python -m twine upload dist/*)
 """
@@ -14,7 +15,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="DRecPy",
-    version="0.0.0",
+    version="0.0.1",
     author="Fabio Colaço",
     author_email="fabioiuri@live.com",
     description="Description Deep Recommenders with Python: "
