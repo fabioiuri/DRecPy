@@ -9,3 +9,4 @@
 - Add feature to compute validation loss on the provided validation dataset during training
 - Make evaluation processes sample test users instead of running each sequentially
 - Add benchmark section to the readme
+- Add type checks for the arguments of each public method
