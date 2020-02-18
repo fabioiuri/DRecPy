@@ -3,6 +3,17 @@ from .mem_dataset import MemoryInteractionDataset
 
 
 class InteractionsDatasetFactory:
+    """InteractionsDatasetFactory creates InteractionDataset instances.
+
+    Args:
+        path: A string representing the path to the file where the dataset is located at.
+        columns: A list with the names of the columns present on the dataset, ordered accordingly to the column order
+            present in the dataset file. Required column names: 'user', 'item', 'interaction'.
+        delimiter: A string representing the delimiter used on the dataset file. Default: ','.
+        has_header: A boolean indicating whether the dataset file has a header row or not (skip first row or not?).
+            Default: false.
+        in_memory: A boolean indicating whether to load the dataset: in memory or out of memory. Default: True.
+    """
     def __new__(cls, path='', columns=None, delimiter=',', has_header=False, in_memory=True, **kwds):
         is_db = path.endswith('.sqlite')
 
@@ -27,5 +38,16 @@ class InteractionsDatasetFactory:
 
     @staticmethod
     def read_df(df, user_label='user', item_label='item', interaction_label='interaction', **kwds):
+        """Convert the provided dataframe into a InteractionDataset instance.
+
+        Args:
+            df: A dataframe containing the dataset to be imported.
+            user_label: The name of the column containing the user identifiers. Default: 'user'.
+            item_label: The name of the column containing the item identifiers. Default: 'item'.
+            interaction_label: The name of the column containing the interaction values. Default: 'interaction'.
+
+        Returns:
+            A InteractionDataset instance containing the provided data.
+        """
         return MemoryInteractionDataset(df=df.copy(), user_label=user_label, item_label=item_label,
                                         interaction_label=interaction_label, **kwds)
