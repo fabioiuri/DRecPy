@@ -14,10 +14,10 @@ ds_train, ds_val = leave_k_out(ds_train, k=5, min_user_interactions=10, seed=10)
 
 def epoch_callback_fn(model):
     train_res = {'train_' + k: v for k, v in
-                 ranking_evaluation(model, pos_interactions=1, neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
+                 ranking_evaluation(model, n_pos_interactions=1, n_neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
                  if 'HR' in k}
     val_res = {'val_' + k: v for k, v in
-               ranking_evaluation(model, ds_val, pos_interactions=1, neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
+               ranking_evaluation(model, ds_val, n_pos_interactions=1, n_neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
                if 'HR' in k}
     return dict(train_res, **val_res)
 
