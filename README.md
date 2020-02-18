@@ -65,7 +65,7 @@ print(predictive_evaluation(cdae, ds_test, skip_errors=True))
 [CDAE] Model fitted.
 Training took 25.366847276687622
 
-{'P@10': 0.047, 'R@10': 0.47, 'HR@10': 0.47, 'NDCG@10': 0.2601, 'RR@10': 0.1968, 'AP@10': 0.1968}
+{'P@10': 0.059, 'R@10': 0.59, 'HR@10': 0.59, 'NDCG@10': 0.3466, 'RR@10': 0.2721, 'AP@10': 0.2721}
 {'RMSE': 3.1662, 'MSE': 10.0245}
 ```
 
