@@ -29,6 +29,8 @@ class RecommenderABC(ABC):
             Default: inferred from the dataset.
         max_interaction (max_rating): Optional integer representing the maximum interaction assumed by the recommender model.
             Default: inferred from the dataset.
+        seed (max_rating): Optional integer representing the seed value for the model pseudo-random number generator.
+            Default: None.
     """
 
     def __init__(self, **kwds):
