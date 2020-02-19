@@ -111,12 +111,21 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             record['rid'] = tmp_df.index[chosen_idx]
             yield record
 
-    def null_interaction_pair_generator(self, seed=None):
+    def null_interaction_pair_generator(self, interaction_threshold=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
         assert len(self) > 0, 'No records were found.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
+
+        try:
+            existing_null_pair_gen = self.select_random_generator(query=f'interaction <= {interaction_threshold}',
+                                                                  seed=seed)
+        except:
+            existing_null_pair_gen = None
+        finally:
+            if interaction_threshold is None:
+                existing_null_pair_gen = None
 
         max_uid = self.max('uid')
         max_iid = self.max('iid')
@@ -125,19 +134,28 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             uid_values = self._df['uid'].values
             iid_values = self._df['iid'].values
             while True:
-                random_uid = rng.randint(0, max_uid)
-                random_iid = rng.randint(0, max_iid)
-                found = self._df[(uid_values == random_uid) & (iid_values == random_iid)].shape[0] > 0
-                if not found: yield random_uid, random_iid
+                if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
+                    existing_null_pair = next(existing_null_pair_gen)
+                    yield existing_null_pair['uid'], existing_null_pair['iid']
+                else:
+                    random_uid = rng.randint(0, max_uid)
+                    random_iid = rng.randint(0, max_iid)
+                    found = self._df[(uid_values == random_uid) & (iid_values == random_iid)].shape[0] > 0
+                    if not found:
+                        yield random_uid, random_iid
         else:
             while True:
-                random_uid = rng.randint(0, max_uid)
-                random_iid = rng.randint(0, max_iid)
-                if len(self._users_records[random_uid]) > len(self._items_records[random_iid]):
-                    found = any(filter(lambda record: record['uid'] == random_uid, self._items_records[random_iid]))
+                if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
+                    existing_null_pair = next(existing_null_pair_gen)
+                    yield existing_null_pair['uid'], existing_null_pair['iid']
                 else:
-                    found = any(filter(lambda record: record['iid'] == random_iid, self._users_records[random_uid]))
-                if not found: yield random_uid, random_iid
+                    random_uid = rng.randint(0, max_uid)
+                    random_iid = rng.randint(0, max_iid)
+                    if len(self._users_records[random_uid]) > len(self._items_records[random_iid]):
+                        found = any(filter(lambda record: record['uid'] == random_uid, self._items_records[random_iid]))
+                    else:
+                        found = any(filter(lambda record: record['iid'] == random_iid, self._users_records[random_uid]))
+                    if not found: yield random_uid, random_iid
 
     def select_user_interaction_vec(self, uid):
         assert self.has_internal_ids is True, 'Cannot retrieve user interaction vector without assigned internal ids.'

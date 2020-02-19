@@ -183,23 +183,36 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
             if chosen_record is not None: yield chosen_record
 
-    def null_interaction_pair_generator(self, seed=None):
+    def null_interaction_pair_generator(self, interaction_threshold=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
         assert len(self) > 0, 'No records were found.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
 
+        try:
+            existing_null_pair_gen = self.select_random_generator(query=f'interaction <= {interaction_threshold}',
+                                                                  seed=seed)
+        except:
+            existing_null_pair_gen = None
+        finally:
+            if interaction_threshold is None:
+                existing_null_pair_gen = None
+
         max_uid = self.max('uid')
         max_iid = self.max('iid')
         c = self._conn.cursor()
         while True:
-            random_uid = rng.randint(0, max_uid)
-            random_iid = rng.randint(0, max_iid)
-            query_conditions = self._parse_query(f'uid == {random_uid}, iid == {random_iid}')
-            new_state = self._build_new_state(query_conditions)
-            if c.execute(new_state).fetchone() is None:
-                yield random_uid, random_iid
+            if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
+                existing_null_pair = next(existing_null_pair_gen)
+                yield existing_null_pair['uid'], existing_null_pair['iid']
+            else:
+                random_uid = rng.randint(0, max_uid)
+                random_iid = rng.randint(0, max_iid)
+                query_conditions = self._parse_query(f'uid == {random_uid}, iid == {random_iid}')
+                new_state = self._build_new_state(query_conditions)
+                if c.execute(new_state).fetchone() is None:
+                    yield random_uid, random_iid
 
     def unique(self, columns=None, copy=True):
         columns = self._handle_columns(columns)
@@ -207,7 +220,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         new_ds.columns = columns
         if copy: self._record_interaction()
 
-        # make sure to always maintain rid on DatabaseinteractionsDataset instances
+        # make sure to always maintain rid on DatabaseInteractionsDataset instances
         new_cols = ','.join(columns)
         new_state = f'SELECT {new_cols} FROM ({new_ds._curr_state_source()}) WHERE rid IN ' \
             f'(SELECT MIN(rid) FROM ({new_ds._curr_state_source()}) ' \
