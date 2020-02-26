@@ -110,10 +110,11 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         for iid, interaction in user_interactions:
             cols.append(iid)
-            interactions.append(interaction)
+            interactions.append(float(interaction))
 
         try:
-            self._user_interaction_vec_cache[uid] = csr_matrix((interactions, ([0] * len(interactions), cols)), shape=(1, max_iid + 1))[0]
+            self._user_interaction_vec_cache[uid] = csr_matrix((interactions, ([0.] * len(interactions), cols)),
+                                                               shape=(1, max_iid + 1))[0]
         except MemoryError:
             self._user_interaction_vec_cache.clear()
 
@@ -135,10 +136,11 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         for uid, interaction in item_interactions:
             cols.append(uid)
-            interactions.append(interaction)
+            interactions.append(float(interaction))
 
         try:
-            self._item_interaction_vec_cache[iid] = csr_matrix((interactions, ([0] * len(interactions), cols)), shape=(1, max_uid + 1))[0]
+            self._item_interaction_vec_cache[iid] = csr_matrix((interactions, ([0.] * len(interactions), cols)),
+                                                               shape=(1, max_uid + 1))[0]
         except MemoryError:
             self._item_interaction_vec_cache.clear()
 
