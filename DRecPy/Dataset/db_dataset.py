@@ -11,6 +11,7 @@ from scipy.sparse import csr_matrix
 
 
 class DatabaseInteractionDataset(InteractionDatasetABC):
+    _open_cursors = []
     _shared_db_instances = {}  # maps the db file paths to a list of object ids currently using it
     _shared_db_table_instances = {}  # maps the db file path + table name to a list of object ids currently using it
     _opt_ratio_threshold = 0.8  # after at least a 20% reduction between old and new states
@@ -267,8 +268,12 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         c = self._conn.cursor()
         c.execute(curr_state_query)
 
+        self._open_cursors.append(id(self))
+
         for row in c:
             yield self._from_row_to_record(row, columns, to_list)
+
+        self._open_cursors.remove(id(self))
 
     def drop(self, record_ids, copy=True, keep=False):
         new_ds = shallowcopy(self) if copy else self
@@ -502,11 +507,11 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             raise Exception(f'Failed to apply operation on column "{column}". Details: {e}')
 
     def __copy__(self):
-        new = type(self)(path=self._db_path, active_table=self._active_table, columns=shallowcopy(self.columns))
+        new = type(self)(path=self._db_path, active_table=self._active_table, columns=shallowcopy(self.columns),
+                         verbose=False)
 
         new.columns = shallowcopy(self.columns)
         new.has_internal_ids = self.has_internal_ids
-        new.verbose = self.verbose
         new._n_rows = self._n_rows
         new._state_query = shallowcopy(self._state_query)
         new._col_types = shallowcopy(self._col_types)
@@ -592,7 +597,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             c.executemany(f'INSERT INTO interactions ({cols}) VALUES ({vars})', records)
             c.close()
 
-        self._log('Trying to load data using auxiliary database...')
+        self._log('Trying to load data from file, using auxiliary database...')
 
         # select delimiter
         orig_delimiter = delimiter
@@ -724,22 +729,24 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         """Records a direct interaction with the current DatabaseInteractionDataset instance. If the number of direct
         interactions exceeds self._opt2_n_direct_interactions_threshold, optimize the states if possible."""
         self._n_direct_interactions += 1
-        if self._n_direct_interactions >= self._opt2_n_direct_interactions_threshold:
+        if self._n_direct_interactions >= self._opt2_n_direct_interactions_threshold \
+                and len(self._open_cursors) == 0:
             self._optimize_states()
 
     def _update_state(self, new_state):
         #print('new_state', new_state)
         self._queries_wo_optimize += 1
 
-        new_rows = self._conn.cursor().execute(f'SELECT COUNT(*) FROM ({new_state})').fetchone()[0]
-        self._n_rows = new_rows
+        self._n_rows = self._conn.cursor().execute(f'SELECT COUNT(*) FROM ({new_state})').fetchone()[0]
 
         self._state_query = new_state
 
-        if self._n_rows_before_opt > 0 and new_rows > 0 and self._queries_wo_optimize >= self._opt_n_query_threshold \
-                and new_rows / self._n_rows_before_opt < self._opt_ratio_threshold \
-                and self._n_rows_before_opt - new_rows >= self._opt_n_rows_threshold:
-            self._n_rows_before_opt = new_rows
+        if self._n_rows_before_opt > 0 and self._n_rows > 0 \
+                and self._queries_wo_optimize >= self._opt_n_query_threshold \
+                and self._n_rows / self._n_rows_before_opt < self._opt_ratio_threshold \
+                and self._n_rows_before_opt - self._n_rows >= self._opt_n_rows_threshold \
+                and len(self._open_cursors) == 0:
+            self._n_rows_before_opt = self._n_rows
             self._optimize_states()
 
     def _optimize_states(self, skip_empty_query=True):
@@ -755,6 +762,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         self._n_direct_interactions = 0
 
         if self._state_query == '' and skip_empty_query: return  # nothing to optimize
+        if len(self._open_cursors) > 0: return  # can't optimize due to cursors being read
 
         self._log('Optimizing state...')
 
@@ -888,4 +896,3 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         conn.commit()
         conn.execute('PRAGMA cache_size=-4000')  # increase cache size to 4000kibs - https://www.sqlite.org/pragma.html#pragma_cache_size
         conn.commit()
-
