@@ -487,7 +487,19 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             return self._df[condition_vector]
 
     def _from_row_to_record(self, row, rid, projected_columns, df_columns, to_list):
-        record = {k: v for k, v in zip(df_columns, row) if k in projected_columns}
+        record = dict()
+
+        for col, value in zip(df_columns, row):
+            if col not in projected_columns: continue
+            dtype = str(self._df[col].dtype)
+
+            if 'int' in dtype:
+                record[col] = int(value)
+            elif 'float' in dtype:
+                record[col] = float(value)
+            else:
+                record[col] = value
+
         if 'rid' in projected_columns: record['rid'] = rid
         if to_list:
             list_interaction = [record[col] for col in projected_columns]
