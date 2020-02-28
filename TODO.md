@@ -10,3 +10,4 @@
 - Make evaluation processes sample test users instead of running each sequentially
 - Add benchmark section to the readme
 - Add type checks for the arguments of each public method
+- Add item->iid and user->uid query optimizaztion to the db interaction dataset (already done on mem)
