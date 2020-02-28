@@ -11,9 +11,9 @@ from scipy.sparse import csr_matrix
 
 
 class DatabaseInteractionDataset(InteractionDatasetABC):
-    _open_cursors = []
-    _shared_db_instances = {}  # maps the db file paths to a list of object ids currently using it
-    _shared_db_table_instances = {}  # maps the db file path + table name to a list of object ids currently using it
+    _open_value_generators = set()  # a set containing the still open value generators (not fully read or not GCed)
+    _shared_db_instances = dict()  # maps the db file paths to a list of object ids currently using it
+    _shared_db_table_instances = dict()  # maps the db file path + table name to a list of object ids currently using it
     _opt_ratio_threshold = 0.8  # after at least a 20% reduction between old and new states
     _opt_n_query_threshold = 3  # only check if should optimize after X queries w/o optimize
     _opt_n_rows_threshold = 5000  # only optimize if the row diff between states is at least X
@@ -67,7 +67,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
     def __len__(self):
         if self._n_rows is None:
-            c = self._conn.cursor()
+            c = self._open_cursor()
             c.execute(f'SELECT COUNT(*) FROM ({self._curr_state_source()})')
             self._n_rows = c.fetchone()[0]
         return self._n_rows
@@ -89,7 +89,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         new_state = self._build_new_state(query_conditions, limit=1)
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
+
         row = c.execute(new_state).fetchone()
         if row is None: return None
 
@@ -164,7 +165,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         rng = random
         if seed is not None: rng = random.Random(seed)
 
-        c = new_ds._conn.cursor()
+        c = new_ds._open_cursor()
         max_uid = new_ds.max('uid')
         while True:
             random_uid = rng.randint(0, max_uid)
@@ -204,7 +205,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         max_uid = self.max('uid')
         max_iid = self.max('iid')
-        c = self._conn.cursor()
+
+        c = self._open_cursor()
         while True:
             if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
                 existing_null_pair = next(existing_null_pair_gen)
@@ -240,7 +242,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
     def count_unique(self, columns=None):
         self._record_interaction()
         columns = self._handle_columns(columns)
-        c = self._conn.cursor()
+
+        c = self._open_cursor()
         c.execute(f'SELECT COUNT(*) FROM (SELECT DISTINCT {",".join(columns)} FROM ({self._curr_state_source()}))')
         return c.fetchone()[0]
 
@@ -248,7 +251,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         self._record_interaction()
         self._validate_column(column)
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT MAX({column}) FROM ({self._curr_state_source()})')
         return c.fetchone()[0]
 
@@ -256,24 +259,41 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         self._record_interaction()
         self._validate_column(column)
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT MIN({column}) FROM ({self._curr_state_source()})')
         return c.fetchone()[0]
 
     def values(self, columns=None, to_list=False):
+        class ValueGenerator:
+            def __init__(self, open_value_generators, row_to_record_fn):
+                self.open_value_generators = open_value_generators
+                self.row_to_record_fn = row_to_record_fn
+                self.iter = self.__iter__()
+                self.removed_gen = False
+                open_value_generators.add(c)
+
+            def __iter__(self):
+                for row in c:
+                    yield self.row_to_record_fn(row, columns, to_list)
+
+                self.removed_gen = True
+                self.open_value_generators.remove(c)
+
+            def __next__(self):
+                return next(self.iter)
+
+            def __del__(self):
+                if not self.removed_gen:
+                    self.open_value_generators.remove(c)
+
         self._record_interaction()
         columns = self._handle_columns(columns)
 
         curr_state_query = self._build_new_state()
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(curr_state_query)
 
-        self._open_cursors.append(id(self))
-
-        for row in c:
-            yield self._from_row_to_record(row, columns, to_list)
-
-        self._open_cursors.remove(id(self))
+        return ValueGenerator(self._open_value_generators, self._from_row_to_record)
 
     def drop(self, record_ids, copy=True, keep=False):
         new_ds = shallowcopy(self) if copy else self
@@ -299,7 +319,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         else:
             user = str(user)
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT uid FROM ({self._active_table}) WHERE user = ?', (user,))
         ret = c.fetchone()
 
@@ -308,7 +328,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
     def uid_to_user(self, uid):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT user FROM ({self._active_table}) WHERE uid = ?', (uid,))
         ret = c.fetchone()
 
@@ -325,7 +345,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         else:
             item = str(item)
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT iid FROM ({self._active_table}) WHERE item = ?', (item,))
         ret = c.fetchone()
 
@@ -334,7 +354,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
     def iid_to_item(self, iid):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
         c.execute(f'SELECT item FROM ({self._active_table}) WHERE iid = ?', (iid,))
         ret = c.fetchone()
 
@@ -355,7 +375,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             tmp_path = path + ".tmp"
             if isfile(tmp_path): remove(tmp_path)
 
-            new_db = sql.connect(tmp_path)
+            new_db = sql.connect(tmp_path, check_same_thread=False)
             self._set_pragmas(new_db)
             new_db_c = new_db.cursor()
 
@@ -391,9 +411,9 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         self._conn.commit()
 
         # create cursor for reads and updates
-        c = self._conn.cursor()
+        c = self._open_cursor()
         self._drop_internal_id_indexes(c, table_name=self._active_table)
-        update_c = self._conn.cursor()
+        update_c = self._open_cursor()
         update_c.execute('BEGIN')
 
         # assigns internal ids to users (uids)
@@ -452,8 +472,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             if new_col_type == self._col_types[column]:  # type does not change
                 self._optimize_states(skip_empty_query=False)  # migrate records if current table is shared
 
-                cur_read = self._conn.cursor()
-                cur_updt = self._conn.cursor()
+                cur_read = self._open_cursor()
+                cur_updt = self._open_cursor()
                 cur_updt.execute('BEGIN')
 
                 cur_read.execute(self._build_new_state())
@@ -467,18 +487,17 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 cur_updt.execute("END")
             else:
                 # type changes, require table structure change
-                cur_read = self._conn.cursor()
+                cur_read = self._open_cursor()
                 cur_read.execute(self._build_new_state())
 
                 self._col_types[column] = new_col_type
                 new_table_name = f'interactions_{str(random.random()).split(".")[1]}'
-                c = self._conn.cursor()
+                c = self._open_cursor()
                 self._build_table(c, new_table_name)
 
                 cols = ','.join(self.columns)
                 vars = ','.join('?' * len(self.columns))
-                print('columns', self.columns)
-                print('updt col', column)
+
                 updt_col_index = self.columns.index(column)
                 chunk = []
                 _iter = cur_read
@@ -494,7 +513,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 if len(chunk) > 0:
                     c.executemany(f'INSERT INTO {new_table_name} ({cols}) VALUES ({vars})', chunk)
 
-                self._build_indexes(self._conn.cursor(), table_name=new_table_name)
+                self._build_indexes(self._open_cursor(), table_name=new_table_name)
                 self._shared_db_table_instances[self._db_path + self._active_table].remove(id(self))
                 self._shared_db_table_instances[self._db_path + new_table_name] = set()
                 self._shared_db_table_instances[self._db_path + new_table_name].add(id(self))
@@ -529,7 +548,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             self._shared_db_table_instances[self._db_path + self._active_table].remove(id(self))
             if len(self._shared_db_table_instances[self._db_path + self._active_table]) == 0:
                 del self._shared_db_table_instances[self._db_path + self._active_table]
-                self._conn.cursor().execute(f'DROP TABLE {self._active_table}')
+                self._open_cursor().execute(f'DROP TABLE {self._active_table}')
 
         if self._conn is not None:
             self._conn.close()
@@ -565,7 +584,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             return col_types
 
         def process_segment(chunk, delimiter):
-            c = self._conn.cursor()
+            c = self._open_cursor()
             projected_cols = shallowcopy(self.columns)
             # rid is never read from file - remove it to not cause issues with zip(row, projected_cols)
             projected_cols.remove('rid')
@@ -620,9 +639,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         # open db connection and create table
         from .integrated_datasets import data_path
         self._col_types = infer_col_types(first_line)
-        #print('col_types', self._col_types)
         self._open_connection(f'{data_path()}interactions_{id(self)}.{str(random.random()).split(".")[1]}.tmp.sqlite')
-        self._build_table(self._conn.cursor())
+        self._build_table(self._open_cursor())
         self._n_rows = 0
 
         # import data into db
@@ -642,7 +660,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             if len(chunk) > 0:
                 process_segment(chunk, new_delimiter)
 
-        self._build_indexes(self._conn.cursor())
+        self._build_indexes(self._open_cursor())
         self._conn.commit()
 
         self.columns = [col for col in self.columns if col is not None]  # remove any skip cols
@@ -730,14 +748,13 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         interactions exceeds self._opt2_n_direct_interactions_threshold, optimize the states if possible."""
         self._n_direct_interactions += 1
         if self._n_direct_interactions >= self._opt2_n_direct_interactions_threshold \
-                and len(self._open_cursors) == 0:
+                and len(self._open_value_generators) == 0:
             self._optimize_states()
 
     def _update_state(self, new_state):
-        #print('new_state', new_state)
         self._queries_wo_optimize += 1
 
-        self._n_rows = self._conn.cursor().execute(f'SELECT COUNT(*) FROM ({new_state})').fetchone()[0]
+        self._n_rows = self._open_cursor().execute(f'SELECT COUNT(*) FROM ({new_state})').fetchone()[0]
 
         self._state_query = new_state
 
@@ -745,7 +762,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 and self._queries_wo_optimize >= self._opt_n_query_threshold \
                 and self._n_rows / self._n_rows_before_opt < self._opt_ratio_threshold \
                 and self._n_rows_before_opt - self._n_rows >= self._opt_n_rows_threshold \
-                and len(self._open_cursors) == 0:
+                and len(self._open_value_generators) == 0:
             self._n_rows_before_opt = self._n_rows
             self._optimize_states()
 
@@ -762,11 +779,11 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         self._n_direct_interactions = 0
 
         if self._state_query == '' and skip_empty_query: return  # nothing to optimize
-        if len(self._open_cursors) > 0: return  # can't optimize due to cursors being read
+        if len(self._open_value_generators) > 0: return  # can't optimize due to value generators being read
 
         self._log('Optimizing state...')
 
-        c = self._conn.cursor()
+        c = self._open_cursor()
 
         if len(self._shared_db_table_instances[self._db_path + self._active_table]) == 1:
             # this is the only instance using the current active table on this database
@@ -810,8 +827,15 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             raise FileNotFoundError(f'No database file found at "{db_path}".')
 
         self._db_path = db_path
-        self._conn = sql.connect(db_path)
+        self._conn = sql.connect(db_path, check_same_thread=False)
         self._set_pragmas(self._conn)
+
+    def _open_cursor(self):
+        try:
+            return self._conn.cursor()
+        except:
+            self._open_connection(self._db_path)
+            return self._conn.cursor()
 
     def _copy_to_new_db(self, c, keep_rids=False):
         """Copies the records returned from the current state to the interactions table of the provided connection."""
@@ -860,7 +884,6 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         create_sql_statement += ')'
 
-        #print('creating table', create_sql_statement)
         c.execute(create_sql_statement)
 
     def _build_indexes(self, c, table_name='interactions'):
