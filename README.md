@@ -109,7 +109,7 @@ Check [LICENCE.md](https://github.com/fabioiuri/DRecPy/blob/master/LICENSE.md).
 Contributors
 ------------
 
-Some parts of this work were produced while I was receiving a FCT research scholarship UID/CEC/00408/2019, under the research institution LASIGE, from Faculty of Sciences, University of Lisbon.
+This work was conducted under the supervision of Prof. Francisco M. Couto, and during the initial development phase the project was financially supported by a FCT research scholarship UID/CEC/00408/2019, under the research institution LASIGE, from the Faculty of Sciences, University of Lisbon.
 
 Development Status
 ------------------
