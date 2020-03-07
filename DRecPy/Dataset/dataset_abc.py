@@ -259,6 +259,12 @@ class InteractionDatasetABC(ABC):
     def __repr__(self):
         return self.__str__()
 
+    def __del__(self):
+        if 'close' in dir(self):
+            self.close()
+        else:
+            self.__del__()
+
     """ Private methods """
     def _validate_column(self, column):
         assert column is not None, 'No column was given.'
