@@ -178,7 +178,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                 projected_cols = [col for col in self.columns if col != 'rid']
                 for row in df_segment[projected_cols].values:
                     cols.append(row[projected_cols.index('iid')])
-                    interactions.append(row[projected_cols.index('interaction')])
+                    interactions.append(float(row[projected_cols.index('interaction')])) # floats due to tf not supporting NPY_INT during np.array to tensor
 
                 return csr_matrix((interactions, ([0] * len(interactions), cols)),
                                   shape=(1, self._df.drop_duplicates(subset='iid').shape[0]))[0]
@@ -211,7 +211,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                 projected_cols = [col for col in self.columns if col != 'rid']
                 for row in df_segment[projected_cols].values:
                     cols.append(row[projected_cols.index('iid')])
-                    interactions.append(row[projected_cols.index('interaction')])
+                    interactions.append(float(row[projected_cols.index('interaction')])) # floats due to tf not supporting NPY_INT during np.array to tensor
 
                 return csr_matrix((interactions, ([0] * len(interactions), cols)),
                                   shape=(1, self._df.drop_duplicates(subset='uid').shape[0]))[0]
@@ -548,7 +548,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                 for row in df_segment[projected_cols].values:
                     users.append(uid)
                     cols.append(row[projected_cols.index('iid')])
-                    interactions.append(row[projected_cols.index('interaction')])
+                    interactions.append(float(row[projected_cols.index('interaction')]))  # floats due to tf not supporting NPY_INT during np.array to tensor
 
             self._cached_interaction_matrix = csr_matrix((interactions, (users, cols)),
                                                          shape=(unique_uid_df.shape[0],
@@ -558,7 +558,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                 for row in self._users_records[uid]:
                     users.append(uid)
                     cols.append(row['iid'])
-                    interactions.append(row['interaction'])
+                    interactions.append(float(row['interaction']))  # floats due to tf not supporting NPY_INT during np.array to tensor
 
             self._cached_interaction_matrix = csr_matrix((interactions, (users, cols)),
                                                          shape=(len(self._users_records), len(self._items_records)))
