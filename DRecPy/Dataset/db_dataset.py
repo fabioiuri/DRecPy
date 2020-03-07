@@ -556,7 +556,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             self._shared_db_table_instances[self._db_path + self._active_table].remove(id(self))
             if len(self._shared_db_table_instances[self._db_path + self._active_table]) == 0:
                 del self._shared_db_table_instances[self._db_path + self._active_table]
-                self._open_cursor().execute(f'DROP TABLE {self._active_table}')
+                if len(self._open_value_generators) == 0:
+                    self._open_cursor().execute(f'DROP TABLE {self._active_table}')
 
         if self._conn is not None:
             self._conn.close()
