@@ -371,7 +371,6 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                     path != self._db_path and path in self._shared_db_instances and len(self._shared_db_instances[path]) > 0:
                 raise Exception(f'Cannot save the current data into "{path}" because there are other '
                                 f'instances that are using this file.')
-
             tmp_path = path + ".tmp"
             if isfile(tmp_path): remove(tmp_path)
 
@@ -541,7 +540,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         return new
 
-    def __del__(self):  # todo: not deleting all the time - fix it
+    def close(self):  # todo: not deleting all the time - fix it
         """Cleanup method to delete temporary database files when they're not in use anymore."""
 
         if self._db_path is not None and self._db_path + self._active_table in self._shared_db_table_instances:
