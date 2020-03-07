@@ -278,6 +278,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
                 self.removed_gen = True
                 self.open_value_generators.remove(c)
+                c.close()
 
             def __next__(self):
                 return next(self.iter)
@@ -285,6 +286,11 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             def __del__(self):
                 if not self.removed_gen:
                     self.open_value_generators.remove(c)
+                    self.removed_gen = True
+                    c.close()
+
+            def close(self):
+                self.__del__()
 
         self._record_interaction()
         columns = self._handle_columns(columns)
@@ -381,6 +387,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             self._build_table(new_db_c)
             self._copy_to_new_db(new_db_c)
             self._build_indexes(new_db_c)
+            new_db_c.close()
             new_db.commit()
             new_db.close()
 
@@ -463,7 +470,9 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         if column in read_only_columns: raise Exception(f'Column "{column}" is read-only.')
 
         try:
-            test_record = next(self.values(columns=[column]))
+            value_gen = self.values(columns=[column])
+            test_record = next(value_gen)
+            value_gen.close()
             test_record[column] = function(test_record[column])
             new_col_type = type(test_record[column])
             assert new_col_type in supported_types, f'New column type "{new_col_type}" is not supported. Supported types: {supported_types}.'
