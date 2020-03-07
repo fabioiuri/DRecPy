@@ -262,8 +262,6 @@ class InteractionDatasetABC(ABC):
     def __del__(self):
         if 'close' in dir(self):
             self.close()
-        else:
-            self.__del__()
 
     """ Private methods """
     def _validate_column(self, column):
