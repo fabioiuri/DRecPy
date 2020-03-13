@@ -287,7 +287,10 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 if not self.removed_gen:
                     self.open_value_generators.remove(c)
                     self.removed_gen = True
-                    c.close()
+                    try:
+                        c.close()
+                    except Exception:
+                        pass
 
             def close(self):
                 self.__del__()
