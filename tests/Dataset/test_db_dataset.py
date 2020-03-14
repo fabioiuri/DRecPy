@@ -1470,10 +1470,10 @@ def test_apply_12(db_interactions):
         {'item': 'xbox', 'interaction': 1, 'rid': 3, 'user': 'jack'}
     ])
     assert check_list_equal([record for record in db_interactions_old.values()], [
-        {'item': 'ps4', 'interaction': 3.0, 'rid': 0, 'user': 'jack'},
-        {'item': 'hard-drive', 'interaction': 4.0, 'rid': 1, 'user': 'john'},
-        {'item': 'pen', 'interaction': 1.0, 'rid': 2, 'user': 'alfred'},
-        {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
+        {'item': 'ps4', 'interaction': 3, 'rid': 0, 'user': 'jack'},
+        {'item': 'hard-drive', 'interaction': 4, 'rid': 1, 'user': 'john'},
+        {'item': 'pen', 'interaction': 1, 'rid': 2, 'user': 'alfred'},
+        {'item': 'xbox', 'interaction': 5, 'rid': 3, 'user': 'jack'}
     ])
 
 
@@ -1667,40 +1667,46 @@ def test_remove_internal_ids_2(db_interactions_with_iids):
 """ save (db) """
 def test_save_db_0(db_interactions_with_mult_cols):
     db_interactions_with_mult_cols.save('testtmp.sqlite')
+    db = InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY)
     try:
-        assert check_list_equal(InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY).values_list(), [
+        assert check_list_equal(db.values_list(), [
             {'item': 'ps4', 'interaction': 3.0, 'rid': 0, 'user': 'jack', 'timestamp': 1000.0, 'session': 5, 'tags': 'tag1;tag2'},
             {'item': 'hard-drive', 'interaction': 4.0, 'rid': 1, 'user': 'john', 'timestamp': 940.33, 'session': 3, 'tags': 'tag5'},
             {'item': 'pen', 'interaction': 1.0, 'rid': 2, 'user': 'alfred', 'timestamp': 900.0, 'session': 2, 'tags': ''},
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack', 'timestamp': 950.52, 'session': 5, 'tags': 'tag3'}
         ])
     finally:
+        db.close()
         remove('testtmp.sqlite')
 
 
 def test_save_db_1(db_interactions_floats):
     db_interactions_floats.save('testtmp.sqlite')
+    db = InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY)
     try:
-        assert check_list_equal(InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY).values_list(), [
+        assert check_list_equal(db.values_list(), [
             {'item': 'ps4', 'interaction': 3.0, 'rid': 0, 'user': 'jack'},
             {'item': 'hard-drive', 'interaction': 4.2, 'rid': 1, 'user': 'john'},
             {'item': 'pen', 'interaction': 1.1, 'rid': 2, 'user': 'alfred'},
             {'item': 'xbox', 'interaction': 5.5, 'rid': 3, 'user': 'jack'}
         ])
     finally:
+        db.close()
         remove('testtmp.sqlite')
 
 
 def test_save_db_2(db_interactions_int_ids):
     db_interactions_int_ids.save('testtmp.sqlite')
+    db = InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY)
     try:
-        assert check_list_equal(InteractionDataset('testtmp.sqlite', in_memory=IN_MEMORY).values_list(), [
+        assert check_list_equal(db.values_list(), [
             {'item': 1, 'interaction': 3.0, 'rid': 0, 'user': 1},
             {'item': 2, 'interaction': 4.0, 'rid': 1, 'user': 2},
             {'item': 3, 'interaction': 1.0, 'rid': 2, 'user': 3},
             {'item': 4, 'interaction': 5.0, 'rid': 3, 'user': 1}
         ])
     finally:
+        db.close()
         remove('testtmp.sqlite')
 
 
