@@ -159,14 +159,14 @@ def test_get_test_dataset_6():
     ret = get_test_dataset('ml-10m')
     assert (len(ret), len(ret.columns)) == (698780, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1, 'item': 122, 'interaction': 5.0, 'timestamp': 838985046.0}
+           {'user': 1, 'item': 316, 'interaction': 5.0, 'timestamp': 838983392}
 
 
 def test_get_test_dataset_7():
     ret = get_test_dataset('ml-20m')
     assert (len(ret), len(ret.columns)) == (1384930, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1, 'item': 1208, 'interaction': 3.5, 'timestamp': 1112484815.0}
+           {'user': 1, 'item': 47, 'interaction': 3.5, 'timestamp': 1112484727}
 
 
 """ get_train_dataset """
@@ -214,11 +214,11 @@ def test_get_train_dataset_6():
     ret = get_train_dataset('ml-10m')
     assert (len(ret), len(ret.columns)) == (9301274, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1.0, 'item': 231.0, 'interaction': 5.0, 'timestamp': 838983392.0}
+           {'user': 1, 'item': 122, 'interaction': 5.0, 'timestamp': 838985046}
 
 
 def test_get_train_dataset_7():
     ret = get_train_dataset('ml-20m')
     assert (len(ret), len(ret.columns)) == (18615333, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1.0, 'item': 2.0, 'interaction': 3.5, 'timestamp': 1112486027.0, 'rid': 0}
+           {'user': 1, 'item': 2, 'interaction': 3.5, 'timestamp': 1112486027}
