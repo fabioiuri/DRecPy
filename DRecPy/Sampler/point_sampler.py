@@ -31,7 +31,9 @@ class PointSampler:
         self.interaction_threshold = interaction_threshold
         self.rng = random.Random(seed)
 
-        self.null_pair_gen = self.interaction_dataset.null_interaction_pair_generator(seed=seed)
+        self.null_pair_gen = self.interaction_dataset.null_interaction_pair_generator(
+            seed=seed, interaction_threshold=interaction_threshold
+        )
         if self.interaction_threshold is None:
             self.pos_pair_gen = self.interaction_dataset.select_random_generator(seed=seed)
         else:
