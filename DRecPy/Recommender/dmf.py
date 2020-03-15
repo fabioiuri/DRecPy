@@ -57,10 +57,7 @@ class DMF(RecommenderABC):
 
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-        interaction_threshold = (self.max_interaction + self.min_interaction) / 2
-        self._log(f'interaction threshold for positive pairs: {interaction_threshold}')
-
-        self._sampler = PointSampler(self.interaction_dataset, neg_ratio, interaction_threshold, self.seed)
+        self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
     def _do_batch(self, **kwds):
         sampled_uid, sampled_iid = self._sampler.sample_one()

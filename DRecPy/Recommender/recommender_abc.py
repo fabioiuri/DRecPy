@@ -25,24 +25,23 @@ class RecommenderABC(ABC):
     Args:
         verbose: Optional boolean indicating if the recommender should print progress logs or not.
             Default: False.
-        min_interaction (min_rating): Optional integer representing the minimum interaction assumed by the recommender model.
-            Default: inferred from the dataset.
-        max_interaction (max_rating): Optional integer representing the maximum interaction assumed by the recommender model.
-            Default: inferred from the dataset.
+        interaction_threshold: Optional integer representing the maximum interaction assumed by the recommender model.
+            Default: 0.
         seed (max_rating): Optional integer representing the seed value for the model pseudo-random number generator.
             Default: None.
     """
 
     def __init__(self, **kwds):
         self.verbose = kwds.get('verbose', True)
-        self.min_interaction = kwds.get('min_interaction', kwds.get('min_rating', None))
-        self.max_interaction = kwds.get('max_interaction', kwds.get('max_rating', None))
+        self.min_interaction = None
+        self.max_interaction = None
         self.seed = kwds.get('seed', None)
 
         self.fitted = False
         self.n_users = 0
         self.n_items = 0
         self.n_rows = 0
+        self.interaction_threshold = kwds.get('interaction_threshold', 0)
         self.interaction_dataset = None
 
         self._loss_tracker = None
@@ -82,10 +81,8 @@ class RecommenderABC(ABC):
             self.interaction_dataset = interaction_dataset.__copy__()
         self.interaction_dataset.assign_internal_ids()
 
-        if self.min_interaction is None:
-            self.min_interaction = self.interaction_dataset.min('interaction')
-        if self.max_interaction is None:
-            self.max_interaction = self.interaction_dataset.max('interaction')
+        self.min_interaction = self.interaction_dataset.min('interaction')
+        self.max_interaction = self.interaction_dataset.max('interaction')
 
         self.n_users = self.interaction_dataset.count_unique('uid')
         self.n_items = self.interaction_dataset.count_unique('iid')
@@ -145,6 +142,7 @@ class RecommenderABC(ABC):
     def _log_initial_info(self):
         self._log(f'Max. interaction value: {self.max_interaction}')
         self._log(f'Min. interaction value: {self.min_interaction}')
+        self._log(f'Interaction threshold value: {self.interaction_threshold}')
         self._log(f'Number of unique users: {self.n_users}')
         self._log(f'Number of unique items: {self.n_items}')
         self._log(f'Number of training points: {self.n_rows}')
