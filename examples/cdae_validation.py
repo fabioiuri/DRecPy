@@ -11,12 +11,14 @@ ds_train = get_train_dataset('ml-100k')
 ds_test = get_test_dataset('ml-100k')
 ds_train, ds_val = leave_k_out(ds_train, k=5, min_user_interactions=10)
 
+
 def epoch_callback_fn(model):
     train_res = {'train_' + k: v for k, v in
                  ranking_evaluation(model, n_pos_interactions=2, n_neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
                  if 'HR' in k}
     val_res = {'val_' + k: v for k, v in
                ranking_evaluation(model, ds_val, n_pos_interactions=2, n_neg_interactions=19, n_test_users=50, verbose=False, k=10).items()
+               if 'HR' in k}
 
     return dict(train_res, **val_res)
 
