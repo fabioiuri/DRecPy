@@ -53,7 +53,7 @@ def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
     return ds_train, ds_test
 
 
-def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=None, **kwds):
+def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwds):
     """Dataset split method that uses a leave k out strategy. More specifically,
     for each user with more than k interactions, k interactions are randomly selected and taken out
     from the train set and put into the test set. This means that there are never users
@@ -68,7 +68,7 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=None, **
         min_user_interactions: Optional integer that represents the minimum number of interactions
             each user needs to have to be included in the train or test set. Default: 0.
         seed: An integer that is used as a seed value for the pseudorandom number generator.
-            If none is given, no seed will be used.
+            Default: 0.
         test_interaction_threshold: Optional float representing the minimum interaction value required
             to add a record to the test dataframe. If this argument is missing, k records will
             be sampled without a minimum interaction value required.
@@ -81,8 +81,6 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=None, **
     assert k > 0, f'The value of k ({k}) must be > 0.'
 
     test_interaction_threshold = kwds.get('test_interaction_threshold', None)
-
-    rng = random.Random(seed)
 
     interaction_dataset.assign_internal_ids()  # to speed up search
 
@@ -100,7 +98,8 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=None, **
     for uid in _iter:
         t = threading.Thread(target=_leave_k_out_user, args=(interaction_dataset, train_rids_to_rem, test_rids,
                                                              min_user_interactions, test_interaction_threshold, k, uid,
-                                                             rng))
+                                                             random.Random(seed)))
+        seed += 1
         threads.append(t)
         t.start()
 
