@@ -13,6 +13,9 @@ from setuptools import setup, find_packages
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r") as fh:
+    requirements = [requirement.strip() for requirement in fh.read().split("/n")]
+
 setup(
     name="DRecPy",
     version="0.0.1",
@@ -24,6 +27,7 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/fabioiuri/DRecPy",
     packages=find_packages(exclude=['tests*']),
+    install_requires=requirements,
     classifiers=['Intended Audience :: Developers', 'Intended Audience :: Education',
                  'Intended Audience :: Science/Research', 'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python :: 3', 'Development Status :: 2 - Pre-Alpha',

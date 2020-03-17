@@ -27,6 +27,19 @@ model evaluation.
 
 For more information about the framework and its components, please visit the [documentation page](https://drecpy.readthedocs.io/).
 
+Installation
+------------
+
+With pip:
+
+    $ pip install drecpy
+
+Via git:
+
+    $ git clone https://github.com/fabioiuri/DRecPy
+    $ cd DRecPy
+    $ python setup.py install
+
 
 Getting Started
 ---------------
@@ -56,7 +69,7 @@ print(predictive_evaluation(cdae, ds_test, skip_errors=True))
 
 ```
 [CDAE] Max. interaction value: 5
-[CDAE] Min. interaction value: 0
+[CDAE] Min. interaction value: 1
 [CDAE] Number of unique users: 943
 [CDAE] Number of unique items: 1680
 [CDAE] Number of training points: 90570
@@ -65,8 +78,8 @@ print(predictive_evaluation(cdae, ds_test, skip_errors=True))
 [CDAE] Model fitted.
 Training took 25.366847276687622
 
-{'P@10': 0.059, 'R@10': 0.59, 'HR@10': 0.59, 'NDCG@10': 0.3466, 'RR@10': 0.2721, 'AP@10': 0.2721}
-{'RMSE': 3.1662, 'MSE': 10.0245}
+{'P@10': 0.061, 'R@10': 0.61, 'HR@10': 0.61, 'NDCG@10': 0.3517, 'RR@10': 0.2734, 'AP@10': 0.2734}
+{'RMSE': 3.1898, 'MSE': 10.1745}
 ```
 
 More quick and easy examples are available [here](https://github.com/fabioiuri/DRecPy/tree/master/examples).
@@ -87,19 +100,6 @@ Benchmarks
 ----------
 
 TODO
-
-Installation
-------------
-
-With pip:
-
-    $ pip install drecpy
-
-Via git:
-
-    $ git clone https://github.com/fabioiuri/DRecPy
-    $ cd DRecPy
-    $ python setup.py install
 
 License
 -------
