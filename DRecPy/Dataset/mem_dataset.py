@@ -185,7 +185,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             else:
                 for row in self._users_records[uid]:
                     cols.append(row['iid'])
-                    interactions.append(row['interaction'])
+                    interactions.append(float(row['interaction'])) # floats due to tf not supporting NPY_INT during np.array to tensor
 
                 return csr_matrix((interactions, ([0] * len(interactions), cols)), shape=(1, len(self._items_records)))[0]
 
@@ -218,7 +218,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             else:
                 for row in self._items_records[iid]:
                     cols.append(row['uid'])
-                    interactions.append(row['interaction'])
+                    interactions.append(float(row['interaction'])) # floats due to tf not supporting NPY_INT during np.array to tensor
 
                 return csr_matrix((interactions, ([0] * len(interactions), cols)), shape=(1, len(self._users_records)))[0]
 
