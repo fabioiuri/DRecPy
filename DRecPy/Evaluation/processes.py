@@ -81,7 +81,7 @@ def predictive_evaluation(model, ds_test, n_test_predictions=None, skip_errors=F
 
 
 def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interactions=1, n_neg_interactions=99, k=10,
-                       interaction_threshold=0, seed=0, **kwds):
+                       seed=0, **kwds):
     """Executes a ranking evaluation process, where the given model will be evaluated under the provided settings.
 
     Args:
@@ -96,11 +96,11 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
             evaluated. Default: 99.
         interaction_threshold: The interaction value threshold to consider an interaction value positive or negative.
             All values above interaction_threshold are considered positive, and all values equal or bellow are
-            considered negative. Default: 0.
+            considered negative. Default: model.interaction_threshold.
         k: An optional integer (or a list of integers) representing the truncation factor (keep the first k elements for
              each ranked list), which then affects the produced metric evaluation. Default: 10.
         seed: An optional, integer representing the seed for the random number generator used to sample positive
-            and negative interaction pairs.
+            and negative interaction pairs. Default: 0.
         metrics: An optional dict mapping the names of the metrics to a tuple containing the metric eval function as the
             first element, and the default arguments to call it as the second element.
             Eg: {'f_score': (f_score, {beta: 1.2})}. Default: dict with the following metrics: precision at k, recall
@@ -114,6 +114,8 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
     assert n_test_users is None or n_test_users > 0, f'The number of test users ({n_test_users}) should be > 0.'
     assert n_pos_interactions > 0, f'The number of positive interactions ({n_pos_interactions}) should be > 0.'
     assert n_neg_interactions > 0, f'The number of negative interactions ({n_neg_interactions}) should be > 0.'
+
+    interaction_threshold = kwds.get('interaction_threshold', model.interaction_threshold)
 
     if type(k) is not list: k = [k]
     for k_ in k:
@@ -159,7 +161,7 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
     for user in _iter:
         if num_rankings_made >= n_test_users: break  # reach max number of rankings
 
-        t = ThreadWithReturnValue(target=ranking_evaluation_user,
+        t = ThreadWithReturnValue(target=_ranking_evaluation_user,
                                   args=(model, user, ds_test, interaction_threshold, n_pos_interactions,
                                         n_neg_interactions, train_evaluation, metrics, metric_sums, k,
                                         random.Random(seed)))
@@ -189,14 +191,13 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
         k = sorted(k)
         for m in metrics:
             axes.plot(k, [results[m + f'@{k_}'] for k_ in k], '--o', label=m)
-        plt.legend()
         plt.show()
 
     return results
 
 
-def ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, n_neg_interactions,
-                            train_evaluation, metrics, metric_sums, k, rng):
+def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, n_neg_interactions,
+                             train_evaluation, metrics, metric_sums, k, rng):
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
     # get positive interactions
@@ -209,13 +210,13 @@ def ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_i
     best_item = sorted(user_interacted_items, key=lambda p: -p['interaction'])[0]['item']
     user_interacted_items = [pair['item'] for pair in user_interacted_items]
 
-    # get negative interactions
     user_non_interacted_items = []
     if train_evaluation:
         user_train_pos_ds = user_test_pos_ds
     else:
         user_train_pos_ds = model.interaction_dataset.select(f'user == {user}, interaction > {interaction_threshold}')
 
+    # get negative interactions
     while len(user_non_interacted_items) < n_neg_interactions:
         new_item = rng.randint(0, model.n_items - 1)
         if train_evaluation and user_train_pos_ds.exists(f'item == {new_item}'):
