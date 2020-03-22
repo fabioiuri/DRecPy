@@ -1,5 +1,4 @@
 # TODO List:
-- Refactors tests for the bultin dbs submodule
 - Tests for the evaluation metrics
 - Tests for the recommenders self.n_users and self.n_items
 - leave-k-out with split by timestamp option
