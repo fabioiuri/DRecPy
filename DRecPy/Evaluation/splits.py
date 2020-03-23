@@ -70,7 +70,7 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwd
         seed: An integer that is used as a seed value for the pseudorandom number generator.
             Default: 0.
         test_interaction_threshold: Optional float representing the minimum interaction value required
-            to add a record to the test dataframe. If this argument is missing, k records will
+            to add a record to the test dataset. If this argument is missing, k records will
             be sampled without a minimum interaction value required.
         verbose: Optional boolean that indicates if a progress bar showing the splitting progress
             should be displayed or not. Default: True.
