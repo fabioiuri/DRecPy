@@ -13,6 +13,7 @@ class InteractionsDatasetFactory:
         has_header: A boolean indicating whether the dataset file has a header row or not (skip first row or not?).
             Default: false.
         in_memory: A boolean indicating whether to load the dataset: in memory or out of memory. Default: True.
+        verbose: A boolean indicating whether to log info messages or not. Default: True.
     """
     def __new__(cls, path='', columns=None, delimiter=',', has_header=False, in_memory=True, **kwds):
         is_db = path.endswith('.sqlite')
