@@ -197,6 +197,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         try:
             existing_null_pair_gen = self.select_random_generator(query=f'interaction <= {interaction_threshold}',
                                                                   seed=seed)
+            next(existing_null_pair_gen)  # force error if there's no matches
         except:
             existing_null_pair_gen = None
         finally:
