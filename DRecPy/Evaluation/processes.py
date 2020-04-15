@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from threading import Thread
 
 
-def predictive_evaluation(model, ds_test, n_test_predictions=None, skip_errors=False, **kwds):
+def predictive_evaluation(model, ds_test, n_test_predictions=None, skip_errors=True, **kwds):
     """Executes a predictive evaluation process, where the given model will be evaluated under the provided settings.
 
     Args:
