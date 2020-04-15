@@ -194,14 +194,14 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         rng = random
         if seed is not None: rng = random.Random(seed)
 
-        try:
-            existing_null_pair_gen = self.select_random_generator(query=f'interaction <= {interaction_threshold}',
-                                                                  seed=seed)
-            next(existing_null_pair_gen)  # force error if there's no matches
-        except:
+        if interaction_threshold is None:
             existing_null_pair_gen = None
-        finally:
-            if interaction_threshold is None:
+        else:
+            try:
+                existing_null_pair_gen = self.select_random_generator(query=f'interaction < {interaction_threshold}',
+                                                                      seed=seed)
+                next(existing_null_pair_gen)  # force error if there's no matches
+            except:
                 existing_null_pair_gen = None
 
         max_uid = self.max('uid')

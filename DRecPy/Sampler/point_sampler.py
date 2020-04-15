@@ -10,9 +10,9 @@ class PointSampler:
             are being sampled from.
         neg_ratio: The number of negative interaction pairs to be sampled for each positive interaction pair.
         interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
-            negative interaction pairs. All values above interaction_threshold are considered positive, and all values
-            equal or bellow are considered negative. If none is provided, positive interactions are the ones present on
-            the data set, and all the others are considered negative. Default: None.
+            negative interaction pairs. All values above or equal to interaction_threshold are considered positive,
+            and all values bellow are considered negative. If none is provided, positive interactions are the ones
+            present on the data set, and all the others are considered negative. Default: None.
         seed: An optional integer to be used as the seed value for the pseudo-random number generated used to sample
             interaction pairs. Default: None.
     """
@@ -38,7 +38,7 @@ class PointSampler:
             self.pos_pair_gen = self.interaction_dataset.select_random_generator(seed=seed)
         else:
             self.pos_pair_gen = self.interaction_dataset.select_random_generator(
-                f'interaction > {interaction_threshold}', seed=seed
+                f'interaction >= {interaction_threshold}', seed=seed
             )
 
     def sample(self, n=16):

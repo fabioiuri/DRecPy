@@ -25,9 +25,9 @@ class RecommenderABC(ABC):
     Args:
         verbose: Optional boolean indicating if the recommender should print progress logs or not.
             Default: False.
-        interaction_threshold:An optional integer that is used as the boundary interaction value between positive and
-            negative interaction pairs. All values above interaction_threshold are considered positive, and all values
-            equal or bellow are considered negative. Default: 0.
+        interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
+            negative interaction pairs. All values above or equal interaction_threshold are considered positive, and
+            all values bellow are considered negative. Default: 0.
         seed (max_rating): Optional integer representing the seed value for the model pseudo-random number generator.
             Default: None.
     """

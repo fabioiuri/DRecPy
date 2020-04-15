@@ -94,14 +94,14 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
         n_neg_interactions:  The number of negative interactions to sample into the list that is going to be ranked and
             evaluated for each user. Default: 99.
         interaction_threshold: The interaction value threshold to consider an interaction value positive or negative.
-            All values above interaction_threshold are considered positive, and all values equal or bellow are
+            All values above or equal interaction_threshold are considered positive, and all values bellow are
             considered negative. Default: model.interaction_threshold.
         k: An optional integer (or a list of integers) representing the truncation factor (keep the first k elements for
              each ranked list), which then affects the produced metric evaluation. Default: 10.
         generate_negative_pairs: An optional boolean that controls whether negative interaction pairs should also be
             generated (interaction pairs not present on the train or test data sets are also sampled) or not (i.e. only
-            gathered from the test data set, where interaction values are smaller or equal than the
-            interaction_threshold). Default: True.
+            gathered from the test data set, where interaction values are bellow than the interaction_threshold).
+            Default: True.
         metrics: An optional dict mapping the names of the metrics to a tuple containing the metric eval function as the
             first element, and the default arguments to call it as the second element.
             Eg: {'f_score': (f_score, {beta: 1.2})}. Default: dict with the following metrics: precision at k, recall
@@ -205,7 +205,7 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
     # get positive interactions
-    user_test_pos_ds = ds_test.select(f'user == {user}, interaction > {interaction_threshold}')
+    user_test_pos_ds = ds_test.select(f'user == {user}, interaction >= {interaction_threshold}')
     if n_pos_interactions is None:
         user_interacted_items = user_test_pos_ds.values_list(columns=['item', 'interaction'])
     else:
@@ -218,7 +218,7 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
     user_interacted_items = [pair['item'] for pair in user_interacted_items]
 
     # get negative interactions
-    negative_pairs_ds = ds_test.select(f'user == {user}, interaction <= {interaction_threshold}')
+    negative_pairs_ds = ds_test.select(f'user == {user}, interaction < {interaction_threshold}')
     if n_neg_interactions is None:
         user_non_interacted_items = negative_pairs_ds.values_list(columns=['item'], to_list=True)
     else:
@@ -229,7 +229,7 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                 user_train_pos_ds = user_test_pos_ds
             else:
                 user_train_pos_ds = model.interaction_dataset \
-                    .select(f'user == {user}, interaction > {interaction_threshold}')
+                    .select(f'user == {user}, interaction >= {interaction_threshold}')
 
             while len(user_non_interacted_items) < n_neg_interactions:
                 new_item = rng.randint(0, model.n_items - 1)

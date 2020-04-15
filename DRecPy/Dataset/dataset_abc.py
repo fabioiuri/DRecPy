@@ -53,9 +53,9 @@ class InteractionDatasetABC(ABC):
 
         Args:
             interaction_threshold: An optional integer that is used as the boundary interaction value between positive
-                and negative interaction pairs. All values above interaction_threshold are considered positive, and all
-                values equal or bellow are considered negative. If none is provided, positive interactions are the ones
-                 present on the dataset, and all the others are considered negative. Default: None.
+                and negative interaction pairs. All values above or equal interaction_threshold are considered positive,
+                and all values bellow are considered negative. If none is provided, positive interactions are the ones
+                present on the dataset, and all the others are considered negative. Default: None.
             seed: An optional integer to be used as the seed value for the pseudo-random number generated used to sample
                 null interaction pairs. Default: None.
 
