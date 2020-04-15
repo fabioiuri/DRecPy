@@ -1,7 +1,7 @@
 import random
 from tqdm import tqdm
 import math
-import threading
+from threading import Thread
 
 
 def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
@@ -53,7 +53,7 @@ def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
     return ds_train, ds_test
 
 
-def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwds):
+def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, max_concurrent_threads=4, **kwds):
     """Dataset split method that uses a leave k out strategy. More specifically,
     for each user with more than k interactions, k interactions are randomly selected and taken out
     from the train set and put into the test set. This means that there are never users
@@ -63,15 +63,15 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwd
 
     Args:
         interaction_dataset: A InteractionDataset instance containing the user-item interactions.
-        k: Optional integer that represents the number of interactions, per user, to use in the
-            test set (and to remove from the train set). Default: 1.
+        k: Optional integer or float value: if k is an integer, then it represents the number of interactions, per user,
+            to use in the test set (and to remove from the train set); if k is a float value (and between 0 and 1),
+            it represents the percentage of interactions, per user, to use in the test set (and to remove from the
+            train set). Default: 1.
         min_user_interactions: Optional integer that represents the minimum number of interactions
             each user needs to have to be included in the train or test set. Default: 0.
+        max_concurrent_threads: An optional integer representing the max concurrent threads to use. Default: 4.
         seed: An integer that is used as a seed value for the pseudorandom number generator.
             Default: 0.
-        test_interaction_threshold: Optional float representing the minimum interaction value required
-            to add a record to the test dataset. If this argument is missing, k records will
-            be sampled without a minimum interaction value required.
         verbose: Optional boolean that indicates if a progress bar showing the splitting progress
             should be displayed or not. Default: True.
 
@@ -80,31 +80,47 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwd
     """
     assert k > 0, f'The value of k ({k}) must be > 0.'
 
-    test_interaction_threshold = kwds.get('test_interaction_threshold', None)
+    ratio_variant = isinstance(k, float)
+
+    if ratio_variant and (k >= 1 or k <= 0):
+        raise Exception('The k parameter should be in the (0, 1) range when it\'s used as the percentage of '
+                        'interactions to sample to the test set, per user')
 
     interaction_dataset.assign_internal_ids()  # to speed up search
 
-    train_rids_to_rem = []
-    test_rids = []
-    unique_uids_ds = interaction_dataset.unique('uid')
-    threads = []
+    if ratio_variant:
+        rng = random.Random(seed)
+        ds_unique_uids = interaction_dataset.unique('uid')
+        test_uids = rng.sample(ds_unique_uids.values_list('uid', to_list=True), math.floor(len(ds_unique_uids) * k))
+        ds_unique_iids = interaction_dataset.unique('iid')
+        test_iids = rng.sample(ds_unique_iids.values_list('iid', to_list=True), math.floor(len(ds_unique_iids) * k))
 
+    unique_uids_ds = interaction_dataset.unique('uid')
     if kwds.get('verbose', True):
-        _iter = tqdm(unique_uids_ds.values(columns=['uid'], to_list=True),
-                     total=len(unique_uids_ds), desc='Splitting dataset')
+        _iter = tqdm(unique_uids_ds.values(
+            columns=['uid'], to_list=True), total=len(unique_uids_ds), desc='Splitting dataset'
+        )
     else:
         _iter = unique_uids_ds.values(columns=['uid'], to_list=True)
 
+    threads = []
+    train_rids_to_rem, test_rids = [], []
     for uid in _iter:
-        t = threading.Thread(target=_leave_k_out_user, args=(interaction_dataset, train_rids_to_rem, test_rids,
-                                                             min_user_interactions, test_interaction_threshold, k, uid,
-                                                             random.Random(seed)))
-        seed += 1
+        if ratio_variant:
+            if uid not in test_uids: continue
+
+            t = Thread(target=_leave_k_out_user_ratio, args=(interaction_dataset, train_rids_to_rem, test_rids,
+                                                             min_user_interactions, uid, test_iids))
+        else:
+            seed += 1
+            t = Thread(target=_leave_k_out_user_fixed, args=(interaction_dataset, train_rids_to_rem, test_rids,
+                                                             min_user_interactions, uid, k, random.Random(seed)))
         threads.append(t)
         t.start()
 
-    for t in threads:
-        t.join()
+        if len(threads) >= max_concurrent_threads: [t.join() for t in threads]
+
+    if len(threads) > 0: [t.join() for t in threads]
 
     interaction_dataset.remove_internal_ids()
     ds_test = interaction_dataset.drop(test_rids, keep=True)
@@ -113,24 +129,33 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, **kwd
     return ds_train, ds_test
 
 
-def _leave_k_out_user(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions,
-                      test_interaction_threshold, k, uid, rng):
+def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, test_iids):
     user_rows_ds = interaction_dataset.select(f'uid == {uid}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
         train_rids_to_rem.extend([record['rid'] for record in user_rows_ds.values(columns=['rid'])])
         return
 
-    if len(user_rows_ds) <= k:  # not enough user interactions to sample
+    to_test = []
+    for rid, iid in user_rows_ds.values(columns=['rid', 'iid'], to_list=True):
+        if iid in test_iids:
+            to_test.append(rid)
+
+    if len(to_test) == len(user_rows_ds): return  # no training records sampled
+
+    test_rids.extend(to_test)
+
+
+def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng):
+    user_rows_ds = interaction_dataset.select(f'uid == {uid}')
+
+    if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
+        train_rids_to_rem.extend([record['rid'] for record in user_rows_ds.values(columns=['rid'])])
         return
 
-    valid_records = user_rows_ds
-    if test_interaction_threshold is not None:
-        valid_records = user_rows_ds.select(f'interaction >= {test_interaction_threshold}')
-        if len(valid_records) <= k:  # not enough user interactions to sample
-            return
+    if len(user_rows_ds) <= k: return  # not enough user interactions to sample
 
-    sampled_idxs = rng.sample(range(len(valid_records)), k)
-    for rid, i in zip(valid_records.values(columns=['rid'], to_list=True), range(len(valid_records))):
+    sampled_idxs = rng.sample(range(len(user_rows_ds)), k)
+    for rid, i in zip(user_rows_ds.values(columns=['rid'], to_list=True), range(len(user_rows_ds))):
         if i in sampled_idxs:
             test_rids.append(rid)
