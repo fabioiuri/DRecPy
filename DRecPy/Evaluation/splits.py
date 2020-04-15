@@ -44,8 +44,8 @@ def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
     for idx, record in _iter:
         if idx == test_idxs[pointer]:
             pointer += 1
-            if pointer >= len(test_idxs):
-                break
+            test_rids.append(record['rid'])
+            if pointer >= len(test_idxs): break
 
     ds_test = interaction_dataset.drop(test_rids, keep=True)
     ds_train = interaction_dataset.drop(test_rids)
