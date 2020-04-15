@@ -1,7 +1,12 @@
 from abc import ABC
 from abc import abstractmethod
 from DRecPy.Recommender import RecommenderABC
-from .similarity import cosine_sim, adjusted_cosine_sim
+from .similarity import cosine_sim
+from .similarity import adjusted_cosine_sim
+from .similarity import cosine_sim_cf
+from .similarity import jaccard_sim
+from .aggregation import mean
+from .aggregation import weighted_mean
 from scipy.sparse import csr_matrix
 from heapq import nlargest
 
@@ -23,54 +28,76 @@ class BaseKNN(RecommenderABC, ABC):
             to validate the similarity value (if not valid, sim. value is set to 0).
             Default: 5.
         sim_metric: Optional string representing the name of the similarity metric to use.
-            Supported: 'adjusted_cosine', 'cosine'. Default: 'adjusted_cosine'.
+            Supported: 'adjusted_cosine', 'cosine', 'cosine_cf', 'jaccard'. Default: 'adjusted_cosine'.
+        aggregation: Optional string representing the name of the aggregation approach to use.
+            Supported: 'mean', 'weighted_mean'. Default: 'weighted_mean'.
         shrinkage: Optional integer representing the discounting factor for computing the
             similarity between items / users (discounts less when #co-ratings increases).
             Default: 100.
+        use_averages: Optional boolean indicating whether to use item (for UserKNN) or user
+            (for ItemKNN) averages when no neighbours are found. Default: True.
     """
 
-    def __init__(self, k=20, m=5, sim_metric='adjusted_cosine', shrinkage=100, **kwds):
+    def __init__(self, k=20, m=5, sim_metric='adjusted_cosine', aggregation='weighted_mean', shrinkage=100,
+                 use_averages=True, **kwds):
         super(BaseKNN, self).__init__(**kwds)
-        self.sim_metric = sim_metric
+
         if sim_metric == 'adjusted_cosine':
             self.sim_metric_fn = adjusted_cosine_sim
         elif sim_metric == 'cosine':
-            self.sim_metric_fn = adjusted_cosine_sim
+            self.sim_metric_fn = cosine_sim
+        elif sim_metric == 'cosine_cf':
+            self.sim_metric_fn = cosine_sim_cf
+        elif sim_metric == 'jaccard':
+            self.sim_metric_fn = jaccard_sim
         else:
-            raise Exception('There is no similarity metric corresponding to the name "{}".'.format(name))
+            raise Exception(f'There is no similarity metric corresponding to the name "{sim_metric}".')
+
+        if aggregation == 'mean':
+            self.aggregation_fn = mean
+        elif aggregation == 'weighted_mean':
+            self.aggregation_fn = weighted_mean
+        else:
+            raise Exception(f'There is no aggregation approach corresponding to the name "{aggregation}".')
+
         self.k = k
         self.m = m
-        self.interactions = None
-        self.user_items = None
-        self.similarities = None
+        self.type = None
         self.shrinkage = shrinkage
+        self.use_averages = use_averages
+
+        self.similarities = None
+        self._neighbours_cache = dict()
 
     def _do_batch(self, **kwds):
         raise NotImplementedError
 
     def _predict(self, uid, iid, **kwds):
-        if uid is None and self.predicts_wo_user or iid is None and self.predicts_wo_item:
-            return self._predict_default(uid, iid)
+        if uid is None or iid is None: return None
 
-        neighbours = self._predict_neighbours(uid, iid)
+        eligible_neighbours, interactions, similarities = [], [], []
+        for similarity, neighbour in self._predict_neighbours(uid if self.type == 'user' else iid):
+            interaction = self._get_interaction(neighbour, iid if self.type == 'user' else uid)
+            if interaction is None: continue
+            eligible_neighbours.append(neighbour)
+            interactions.append(interaction)
+            similarities.append(similarity)
 
-        if len(neighbours) == 0: return self._predict_default(uid, iid)
+        if len(eligible_neighbours) == 0 and self.use_averages:
+            return self._predict_default(iid if self.type == 'user' else uid)
 
-        sim_sum = 1e-6
-        interaction_sum = 0
-        for neighbour in neighbours:
-            similarity, interaction = neighbour
-            interaction_sum += similarity * interaction
-            sim_sum += similarity
-
-        return interaction_sum / sim_sum
+        return self.aggregation_fn(eligible_neighbours, interactions, similarities)
 
     @abstractmethod
-    def _predict_neighbours(self, uid, iid):
+    def _predict_neighbours(self, _):
         pass
 
     @abstractmethod
-    def _predict_default(self, uid, iid):
+    def _predict_default(self, _):
+        pass
+
+    @abstractmethod
+    def _get_interaction(self, _, __):
         pass
 
     def _get_sim(self, id1, id2):
@@ -90,18 +117,17 @@ class ItemKNN(BaseKNN):
     Public Methods:
         fit(), predict(), recommend(), rank().
 
-    Attributes: See parent object BaseKNN
+    Attributes: See parent object BaseKNN obj:`DRecPy.Recommender.Baseline.BaseKNN`
     """
 
     def __init__(self, **kwds):
         super(ItemKNN, self).__init__(**kwds)
-
-        self.predicts_wo_item = True
+        self.type = 'item'
+        self.unique_items = None
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
+        self.unique_items = self.interaction_dataset.unique('iid')
         # create storage data structures
-        self.interactions = {}
-        self.user_items = {}
         item_rated_users = {}
         interactions, uids, iids = [], [], []
         for record in self.interaction_dataset.values():
@@ -110,20 +136,15 @@ class ItemKNN(BaseKNN):
             uids.append(u)
             iids.append(i)
 
-            if u not in self.interactions:
-                self.interactions[u] = []
-                self.user_items[u] = []
             if i not in item_rated_users:
                 item_rated_users[i] = set()
 
-            self.interactions[u].append(r)
-            self.user_items[u].append(i)
             item_rated_users[i].add(u)
 
         # compute similarity matrix
         self._log('Computing similarity matrix...')
-        similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (iids, uids)),
-                                                            shape=(len(iids), len(uids)))).tocoo()
+        similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (iids, uids)))).tocoo()
+
         self.similarities = {}
         for i1, i2, s in zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data):
             if i1 <= i2:  # symmetric matrix - only need 1/2 of the values
@@ -138,14 +159,27 @@ class ItemKNN(BaseKNN):
             if self.shrinkage is not None:
                 self.similarities[(i1, i2)] *= len(co_ratings) / (len(co_ratings) + self.shrinkage + 1e-6)
 
-    def _predict_neighbours(self, uid, iid):
-        full_sim_list = [(self._get_sim(iid, iid2), r) for iid2, r in zip(self.user_items[uid], self.interactions[uid])]
-        relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
-        return nlargest(self.k, relev_sim_list)
+    def _get_interaction(self, iid, uid):
+        record = self.interaction_dataset.select_one(f'uid == {uid}, iid == {iid}')
+        return None if record is None else record['interaction']
 
-    def _predict_default(self, uid, _):
+    def _predict_neighbours(self, iid):
+        if iid in self._neighbours_cache: return self._neighbours_cache[iid]
+
+        unique_items_gen = self.unique_items.values(columns=['iid'], to_list=True)
+        full_sim_list = [(self._get_sim(iid, iid2), iid2) for iid2 in unique_items_gen if iid2 != iid]
+        relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
+        neighbours = nlargest(self.k, relev_sim_list)
+
+        try: self._neighbours_cache[iid] = neighbours
+        except MemoryError: pass
+
+        return self._neighbours_cache[iid]
+
+    def _predict_default(self, uid):
         """Returns the user average interaction."""
-        return sum(self.interactions[uid]) / len(self.interactions[uid])
+        user_records = self.interaction_dataset.select(f'uid == {uid}')
+        return sum(user_records.values_list(columns=['interaction'], to_list=True)) / len(user_records)
 
 
 class UserKNN(BaseKNN):
@@ -161,16 +195,12 @@ class UserKNN(BaseKNN):
 
     def __init__(self, **kwds):
         super(UserKNN, self).__init__(**kwds)
-
-        self.predicts_wo_user = True
-
-        self.item_users = None
+        self.type = 'user'
+        self.unique_users = None
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
+        self.unique_users = self.interaction_dataset.unique('uid')
         # create storage data structures
-        self.interactions = {}
-        self.user_items = {}
-        self.item_users = {}
         user_rated_items = {}
         interactions, uids, iids = [], [], []
         for record in self.interaction_dataset.values():
@@ -179,23 +209,16 @@ class UserKNN(BaseKNN):
             uids.append(u)
             iids.append(i)
 
-            if u not in self.user_items:
-                self.user_items[u] = []
+            if u not in user_rated_items:
                 user_rated_items[u] = set()
-            if i not in self.interactions:
-                self.interactions[i] = []
-                self.item_users[i] = []
 
-            self.interactions[i].append(r)
-            self.item_users[i].append(u)
-            self.user_items[u].append(i)
             user_rated_items[u].add(i)
 
         # compute similarity matrix
         self._log('Computing similarity matrix...')
-        similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (uids, iids)),
-                                                            shape=(len(uids), len(iids)))).tocoo()
+        similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (uids, iids)))).tocoo()
         self.similarities = {}
+
         for u1, u2, s in zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data):
             if u1 <= u2:  # symmetric matrix - only need 1/2 of the values
                 continue
@@ -209,11 +232,24 @@ class UserKNN(BaseKNN):
             if self.shrinkage is not None:
                 self.similarities[(u1, u2)] *= len(co_ratings) / (len(co_ratings) + self.shrinkage + 1e-6)
 
-    def _predict_neighbours(self, uid, iid):
-        full_sim_list = [(self._get_sim(uid, uid2), r) for uid2, r in zip(self.item_users[iid], self.interactions[iid])]
-        relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
-        return nlargest(self.k, relev_sim_list)
+    def _get_interaction(self, uid, iid):
+        record = self.interaction_dataset.select_one(f'uid == {uid}, iid == {iid}')
+        return None if record is None else record['interaction']
 
-    def _predict_default(self, _, iid):
+    def _predict_neighbours(self, uid):
+        if uid in self._neighbours_cache: return self._neighbours_cache[uid]
+
+        unique_users_gen = self.unique_users.values(columns=['uid'], to_list=True)
+        full_sim_list = [(self._get_sim(uid, uid2), uid2) for uid2 in unique_users_gen if uid2 != uid]
+        relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
+        neighbours = nlargest(self.k, relev_sim_list)
+
+        try: self._neighbours_cache[uid] = neighbours
+        except MemoryError: pass
+
+        return neighbours
+
+    def _predict_default(self, iid):
         """Returns the item average interaction."""
-        return sum(self.interactions[iid]) / len(self.interactions[iid])
+        item_records = self.interaction_dataset.select(f'iid == {iid}')
+        return sum(item_records.values_list(columns=['interaction'], to_list=True)) / len(item_records)
