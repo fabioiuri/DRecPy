@@ -49,10 +49,6 @@ class RecommenderABC(ABC):
         self._rng = random.Random(self.seed)
         tf.random.set_seed(self.seed)
 
-        # flags that can be overwritten by recommender models
-        self.predicts_wo_user = False  # if it supports predict(None, iid)
-        self.predicts_wo_item = False  # if it supports predict(uid, None)
-
     def fit(self, interaction_dataset, epochs=50, batch_size=32, learning_rate=0.001, neg_ratio=5, reg_rate=0.001,
             copy_dataset=False, **kwds):
         """Processes the provided dataframe and builds id-abstraction, infers min. and max. interactions
@@ -179,11 +175,9 @@ class RecommenderABC(ABC):
             an error occurs and skip_errors = True.
         """
         assert self.fitted is True, 'The model requires to be fitted before being able to make predictions.'
-        assert skip_errors or self.interaction_dataset.user_to_uid(user_id) is not None or \
-               self.interaction_dataset.user_to_uid(user_id) is None and self.predicts_wo_user, \
+        assert skip_errors or self.interaction_dataset.user_to_uid(user_id) is not None, \
             f'User {user_id} was not found and the model doesn\'t support those predictions.'
-        assert skip_errors or self.interaction_dataset.item_to_iid(item_id) is not None or \
-               self.interaction_dataset.item_to_iid(item_id) is None and self.predicts_wo_item, \
+        assert skip_errors or self.interaction_dataset.item_to_iid(item_id) is not None, \
             f'Item {item_id} was not found and the model doesn\'t support those predictions.'
 
         prediction = None
@@ -205,15 +199,15 @@ class RecommenderABC(ABC):
         provided item, user pair. uid and iid are internal ids."""
         pass
 
-    def recommend(self, user_id, n, novelty=True, **kwds):
+    def recommend(self, user_id, n=None, novelty=True, **kwds):
         """Computes a recommendation list for the given user and with the requested characteristics.
 
         Args:
             user_id: A string or integer representing the user id.
             n: An integer representing the number of recommended items.
             novelty: An optional boolean indicating if we only novelty recommendations or not. Default: True.
-            threshold: Optional float value that represents the similarity value required to consider
-                an item to be a useful recommendation.
+            interaction_threshold: Optional float value that represents the similarity value required to consider
+                an item to be a useful recommendation Default: self.interaction_threshold.
 
         Returns:
             A list containing recommendations in the form of (similarity, item) tuples.
@@ -221,10 +215,12 @@ class RecommenderABC(ABC):
         assert self.fitted is True, 'The model requires to be fitted before being able to make predictions.'
         assert self.interaction_dataset.user_to_uid(user_id) is not None, f'User {user_id} was not found.'
 
-        threshold = kwds.get('threshold', (self.max_interaction + self.min_interaction) / 2)
+        if n is None: n = self.n_items
+
+        threshold = kwds.get('interaction_threshold', self.interaction_threshold)
         uid = self.interaction_dataset.user_to_uid(user_id)
         recs = self._recommend(uid, n, novelty, threshold)
-        return [(r, self.interaction_dataset.iid_to_item[iid]) for r, iid in recs]
+        return [(r, self.interaction_dataset.iid_to_item(iid)) for r, iid in recs]
 
     def _recommend(self, uid, n, novelty, threshold):
         """Returns a list containing recommendations in the form of (similarity, item) tuples. uid is an internal id."""
@@ -271,7 +267,7 @@ class RecommenderABC(ABC):
             rated_items = self.interaction_dataset.select(f'uid == {uid}').values_list(columns=['iid'], to_list=True)
             iids = set(iids).difference(set(rated_items))
 
-        pred_list = [(self._predict(uid, iid), iid) for iid in iids]
+        pred_list = filter(lambda x: x[0] is not None, [(self._predict(uid, iid), iid) for iid in iids])
         return nlargest(n, pred_list)
 
     def _standardize_value(self, value):
