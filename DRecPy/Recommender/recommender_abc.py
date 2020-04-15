@@ -79,6 +79,7 @@ class RecommenderABC(ABC):
         self.interaction_dataset.assign_internal_ids()
 
         self.min_interaction = self.interaction_dataset.min('interaction')
+        if self.min_interaction == 1: self.min_interaction = 0
         self.max_interaction = self.interaction_dataset.max('interaction')
 
         self.n_users = self.interaction_dataset.count_unique('uid')
@@ -175,10 +176,8 @@ class RecommenderABC(ABC):
             an error occurs and skip_errors = True.
         """
         assert self.fitted is True, 'The model requires to be fitted before being able to make predictions.'
-        assert skip_errors or self.interaction_dataset.user_to_uid(user_id) is not None, \
-            f'User {user_id} was not found and the model doesn\'t support those predictions.'
-        assert skip_errors or self.interaction_dataset.item_to_iid(item_id) is not None, \
-            f'Item {item_id} was not found and the model doesn\'t support those predictions.'
+        assert skip_errors or self.interaction_dataset.user_to_uid(user_id) is not None, f'User {user_id} was not found.'
+        assert skip_errors or self.interaction_dataset.item_to_iid(item_id) is not None, f'Item {item_id} was not found.'
 
         prediction = None
 
