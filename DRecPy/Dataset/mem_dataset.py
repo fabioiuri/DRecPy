@@ -409,7 +409,14 @@ class MemoryInteractionDataset(InteractionDatasetABC):
 
         for segment in query_segments:
             segment = segment.strip()
-            column, operator, value = segment.split(" ")
+            try:
+                column, operator, value = segment.split(" ")
+            except ValueError:
+                raise Exception(
+                    f'Query segment failed to be parsed. Check if there are no missing spaces or invalid characters.'
+                    f' Query segment: "{segment}"'
+                )
+
             assert column is not None or operator is not None or value is not None, \
                 'Invalid get query, must be in form: column1 operator1 value1, column2 operator2 value2, ...'
             assert column in self.columns, f'Unexpected column "{column}".'
@@ -442,7 +449,8 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                 except ValueError:
                     raise Exception(
                         f'Query "{query}" was failed to be parsed: check if no invalid comparisons are being made '
-                        f'(column of type int being compared to a str, or vice versa).')
+                        f'(column of type int being compared to a str, or vice versa).'
+                    )
 
             if column == 'rid':
                 values = self._df.index.values
