@@ -179,9 +179,11 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
         threads.append(t)
         t.start()
 
-        if len(threads) >= max_concurrent_threads: [t.join() for t in threads]
+        if len(threads) >= max_concurrent_threads:
+            [t.join() for t in threads]
+            threads = []
 
-    if len(threads) > 0: [t.join() for t in threads]
+    if len(threads) > 0:  [t.join() for t in threads]
 
     results = {m + f'@{k}': round(metric_sums[(m, k)][0] / metric_sums[(m, k)][1], 4) if metric_sums[(m, k)][1] > 0 else 0
                for m, k in metric_sums}
@@ -204,8 +206,9 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                              train_evaluation, metrics, metric_sums, k, generate_negative_pairs, rng):
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
+    user_ds = ds_test.select(f'user == {user}')
     # get positive interactions
-    user_test_pos_ds = ds_test.select(f'user == {user}, interaction >= {interaction_threshold}')
+    user_test_pos_ds = user_ds.select(f'interaction >= {interaction_threshold}')
     if n_pos_interactions is None:
         user_interacted_items = user_test_pos_ds.values_list(columns=['item', 'interaction'])
     else:
@@ -214,11 +217,10 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                                            n_pos_interactions)
 
     best_item = None if len(user_interacted_items) == 0 else max(user_interacted_items, key=lambda p: -p['interaction'])['item']
-    relevancies = [pair['interaction'] for pair in user_interacted_items]
     user_interacted_items = [pair['item'] for pair in user_interacted_items]
 
     # get negative interactions
-    negative_pairs_ds = ds_test.select(f'user == {user}, interaction < {interaction_threshold}')
+    negative_pairs_ds = user_ds.select(f'interaction < {interaction_threshold}')
     if n_neg_interactions is None:
         user_non_interacted_items = negative_pairs_ds.values_list(columns=['item'], to_list=True)
     else:
@@ -247,6 +249,8 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
 
     # rank according to model
     recommendations = [item for _, item in model.rank(user, all_items, novelty=False, skip_invalid_items=True)]
+    relevancies = {item: (user_ds.select_one(f'item == {item}', columns=['interaction'], to_list=True) or 0)
+                   for item in all_items}
 
     # evaluate performance
     for m in metrics:

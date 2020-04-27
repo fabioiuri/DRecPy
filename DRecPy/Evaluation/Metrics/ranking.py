@@ -1,23 +1,19 @@
 import math
 
 
-def dcg(recommendations, relevant_recommendations, relevancies, k=None, strong_relevancy=True):
+def dcg(recommendations, relevancies, k=None, strong_relevancy=True):
     """Discounted Cumulative Gain at k
     Example calls:
-    >>> dcg([1, 3, 2, 6, 5, 4], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 14.595390756454924
-    >>> dcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 13.848263629272981
-    >>> dcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=False) == 6.861126688593502
-    >>> dcg([4, 10, 20, 30], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 0.0
+    >>> dcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 45.64282878502658
+    >>> dcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 10.271924937667158
+    >>> dcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 3.0
+    >>> dcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 2.0
     """
     if k is not None: recommendations = recommendations[:k]
 
     curr_dcg = 0
     for i, r in enumerate(recommendations):
-        rel = 0
-
-        if r in relevant_recommendations:
-            rel_idx = relevant_recommendations.index(r)
-            rel = relevancies[rel_idx]
+        rel = relevancies[r]
 
         if strong_relevancy:
             curr_dcg += (2 ** rel - 1) / math.log2(2 + i)
@@ -27,25 +23,17 @@ def dcg(recommendations, relevant_recommendations, relevancies, k=None, strong_r
     return curr_dcg
 
 
-def ndcg(recommendations, relevant_recommendations, relevancies, k=None, strong_relevancy=True):
+def ndcg(recommendations, relevancies, k=None, strong_relevancy=True):
     """Normalized Discounted Cumulative Gain at k
     Example calls:
-    >>> ndcg([1, 3, 2, 6, 5, 4], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 1.0
-    >>> ndcg([1, 3, 2, 6, 5], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 1.0
-    >>> ndcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 0.9488107485678985
-    >>> ndcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=False) == 0.9608081943360617
-    >>> ndcg([4, 5, 6, 2, 3, 1], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 0.5908974642816868
-    >>> ndcg([4, 5], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 0.04322801383665758
-    >>> ndcg([4, 10, 20, 30], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], strong_relevancy=True) == 0.0
-    >>> ndcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], k=1, strong_relevancy=True) == 1.0
-    >>> ndcg([1, 2, 3, 4, 5, 6], [1, 2, 3, 5, 6], [3, 2, 3, 1, 2], k=2, strong_relevancy=True) == 0.7789412530088334
+    >>> ndcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 1.0
+    >>> ndcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 1.0
+    >>> ndcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 0.06572774036705124
+    >>> ndcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 0.194705472648655954
     """
-    if k is not None: recommendations = recommendations[:k]
-
-    curr_dcg = dcg(recommendations, relevant_recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
-    best_recommendations = sorted(zip(relevant_recommendations, relevancies), key=lambda x: -x[1])
-    best_recommendations = [r for r, _ in best_recommendations]
-    best_dcg = dcg(best_recommendations, relevant_recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
+    curr_dcg = dcg(recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
+    best_recommendations = sorted(relevancies.keys(), key=lambda x: -relevancies[x])
+    best_dcg = dcg(best_recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
 
     return curr_dcg / best_dcg
 
