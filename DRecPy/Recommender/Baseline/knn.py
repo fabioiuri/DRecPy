@@ -5,6 +5,8 @@ from .similarity import cosine_sim
 from .similarity import adjusted_cosine_sim
 from .similarity import cosine_sim_cf
 from .similarity import jaccard_sim
+from .similarity import msd
+from .similarity import pearson_corr
 from .aggregation import mean
 from .aggregation import weighted_mean
 from scipy.sparse import csr_matrix
@@ -28,7 +30,7 @@ class BaseKNN(RecommenderABC, ABC):
             to validate the similarity value (if not valid, sim. value is set to 0).
             Default: 5.
         sim_metric: Optional string representing the name of the similarity metric to use.
-            Supported: 'adjusted_cosine', 'cosine', 'cosine_cf', 'jaccard'. Default: 'adjusted_cosine'.
+            Supported: 'adjusted_cosine', 'cosine', 'cosine_cf', 'jaccard', 'msd', 'pearson'. Default: 'adjusted_cosine'.
         aggregation: Optional string representing the name of the aggregation approach to use.
             Supported: 'mean', 'weighted_mean'. Default: 'weighted_mean'.
         shrinkage: Optional integer representing the discounting factor for computing the
@@ -50,6 +52,10 @@ class BaseKNN(RecommenderABC, ABC):
             self.sim_metric_fn = cosine_sim_cf
         elif sim_metric == 'jaccard':
             self.sim_metric_fn = jaccard_sim
+        elif sim_metric == 'msd':
+            self.sim_metric_fn = msd
+        elif sim_metric == 'pearson':
+            self.sim_metric_fn = pearson_corr
         else:
             raise Exception(f'There is no similarity metric corresponding to the name "{sim_metric}".')
 
@@ -123,10 +129,8 @@ class ItemKNN(BaseKNN):
     def __init__(self, **kwds):
         super(ItemKNN, self).__init__(**kwds)
         self.type = 'item'
-        self.unique_items = None
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
-        self.unique_items = self.interaction_dataset.unique('iid')
         # create storage data structures
         item_rated_users = {}
         interactions, uids, iids = [], [], []
@@ -166,8 +170,7 @@ class ItemKNN(BaseKNN):
     def _predict_neighbours(self, iid):
         if iid in self._neighbours_cache: return self._neighbours_cache[iid]
 
-        unique_items_gen = self.unique_items.values(columns=['iid'], to_list=True)
-        full_sim_list = [(self._get_sim(iid, iid2), iid2) for iid2 in unique_items_gen if iid2 != iid]
+        full_sim_list = [(self._get_sim(iid, iid2), iid2) for iid2 in range(self.n_items) if iid2 != iid]
         relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
         neighbours = nlargest(self.k, relev_sim_list)
 
@@ -196,10 +199,8 @@ class UserKNN(BaseKNN):
     def __init__(self, **kwds):
         super(UserKNN, self).__init__(**kwds)
         self.type = 'user'
-        self.unique_users = None
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
-        self.unique_users = self.interaction_dataset.unique('uid')
         # create storage data structures
         user_rated_items = {}
         interactions, uids, iids = [], [], []
@@ -239,8 +240,7 @@ class UserKNN(BaseKNN):
     def _predict_neighbours(self, uid):
         if uid in self._neighbours_cache: return self._neighbours_cache[uid]
 
-        unique_users_gen = self.unique_users.values(columns=['uid'], to_list=True)
-        full_sim_list = [(self._get_sim(uid, uid2), uid2) for uid2 in unique_users_gen if uid2 != uid]
+        full_sim_list = [(self._get_sim(uid, uid2), uid2) for uid2 in range(self.n_users) if uid2 != uid]
         relev_sim_list = filter(lambda x: x[0] > 0, full_sim_list)
         neighbours = nlargest(self.k, relev_sim_list)
 
