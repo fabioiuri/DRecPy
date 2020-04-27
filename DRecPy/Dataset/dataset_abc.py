@@ -77,7 +77,7 @@ class InteractionDatasetABC(ABC):
         Returns:
 
         """
-        return next(self.select(query).values(columns=None, to_list=False), None)
+        return next(self.select(query).values(columns=columns, to_list=to_list), None)
 
     @abstractmethod
     def select_user_interaction_vec(self, uid):
