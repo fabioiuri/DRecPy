@@ -158,28 +158,23 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, last_timestam
         raise Exception('The k parameter should be in the (0, 1) range when it\'s used as the percentage of '
                         'interactions to sample to the test set, per user')
 
-    interaction_dataset.assign_internal_ids()  # to speed up search
-
-    unique_uids_ds = interaction_dataset.unique('uid')
+    unique_users_ds = interaction_dataset.unique('user')
     if kwds.get('verbose', True):
-        _iter = tqdm(unique_uids_ds.values(
-            columns=['uid'], to_list=True), total=len(unique_uids_ds), desc='Splitting dataset'
-        )
+        _iter = tqdm(unique_users_ds.values('user', to_list=True), total=len(unique_users_ds), desc='Splitting dataset')
     else:
-        _iter = unique_uids_ds.values(columns=['uid'], to_list=True)
+        _iter = unique_users_ds.values('user', to_list=True)
 
     threads = []
     train_rids_to_rem, test_rids = [], []
-    for uid in _iter:
+    for user in _iter:
+        seed += 1
         if ratio_variant:
-            seed += 1
             t = Thread(target=_leave_k_out_user_ratio, args=(interaction_dataset, train_rids_to_rem, test_rids,
-                                                             min_user_interactions, uid, k, random.Random(seed),
+                                                             min_user_interactions, user, k, random.Random(seed),
                                                              last_timestamps))
         else:
-            seed += 1
             t = Thread(target=_leave_k_out_user_fixed, args=(interaction_dataset, train_rids_to_rem, test_rids,
-                                                             min_user_interactions, uid, k, random.Random(seed),
+                                                             min_user_interactions, user, k, random.Random(seed),
                                                              last_timestamps))
         threads.append(t)
         t.start()
@@ -188,16 +183,15 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, last_timestam
 
     if len(threads) > 0: [t.join() for t in threads]
 
-    interaction_dataset.remove_internal_ids()
     ds_test = interaction_dataset.drop(test_rids, keep=True)
     ds_train = interaction_dataset.drop(train_rids_to_rem + test_rids)
 
     return ds_train, ds_test
 
 
-def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng,
+def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, user, k, rng,
                             last_timestamps):
-    user_rows_ds = interaction_dataset.select(f'uid == {uid}')
+    user_rows_ds = interaction_dataset.select(f'user == {user}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
         train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
@@ -221,9 +215,9 @@ def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, m
                 test_rids.append(rid)
 
 
-def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng,
+def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, user, k, rng,
                             last_timestamps):
-    user_rows_ds = interaction_dataset.select(f'uid == {uid}')
+    user_rows_ds = interaction_dataset.select(f'user == {user}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
         train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
