@@ -38,18 +38,6 @@ def ndcg(recommendations, relevancies, k=None, strong_relevancy=True):
     return curr_dcg / best_dcg
 
 
-def mean_ndcg(recommendations_list, relevant_recommendations_list, relevancies_list, k=None, strong_relevancy=True):
-    """Mean Normalized Discounted Cumulative Gain at k
-    Example calls:
-    >>> mean_ndcg([[1, 3, 2, 6, 5, 4], [4, 10, 20, 30]], [[1, 2, 3, 5, 6], [1, 2, 3, 5, 6]], [[3, 2, 3, 1, 2], [3, 2, 3, 1, 2]]) == 0.5
-    """
-    _sum = 0
-    for recommendations, relevant_recommendations, relevancies in \
-            zip(recommendations_list, relevant_recommendations_list, relevancies_list):
-        _sum += ndcg(recommendations, relevant_recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
-    return _sum / len(recommendations_list)
-
-
 def hit_ratio(recommendations, relevant_recommendations, k=None):
     """Hit Ratio at k
     Example calls:
@@ -66,18 +54,6 @@ def hit_ratio(recommendations, relevant_recommendations, k=None):
     relevant_recommendations = set([str(item) for item in relevant_recommendations])
 
     return len(recommendations.intersection(relevant_recommendations)) / len(relevant_recommendations)
-
-
-def mean_hit_ratio(recommendations_list, relevant_recommendations_list, k=None):
-    """Mean Hit Ratio at k
-    Example calls:
-    >>> mean_hit_ratio([[1,2,3], [1,2,3]], [[3,2], [3,2,5]]) == 0.8333333333333333
-    >>> mean_hit_ratio([[3,2,1], [1,2]], [[3,2], [3,2,5]], k=2) == 0.6666666666666666
-    """
-    _sum = 0
-    for recommendations, relevant_recommendations in zip(recommendations_list, relevant_recommendations_list):
-        _sum += hit_ratio(recommendations, relevant_recommendations, k=k)
-    return _sum / len(recommendations_list)
 
 
 def reciprocal_rank(recommendations, relevant_recommendation, k=None):
@@ -99,22 +75,6 @@ def reciprocal_rank(recommendations, relevant_recommendation, k=None):
     if relevant_recommendation in recommendations:
         return 1 / (recommendations.index(relevant_recommendation) + 1)
     return 0
-
-
-def mean_reciprocal_rank(recommendations_list, relevant_recommendation_list, k=None):
-    """Mean Reciprocal Rank at k
-    Example calls:
-    >>> mean_reciprocal_rank([[1,2,3], [1,2,3], [1,2,3], [1,2,3], [3,2,1]], [1, 2, 3, 4, 3]) == 0.5666666666666667
-    >>> mean_reciprocal_rank([[1,2,3], [1,2,3], [1,2,3], [1,2,3], [3,2,1]], [1, 2, 3, 4, 3], k=2) == 0.5
-    :param recommendations_list:
-    :param relevant_recommendation_list:
-    :param k:
-    :return:
-    """
-    _sum = 0
-    for recommendations, relevant_recommendation in zip(recommendations_list, relevant_recommendation_list):
-        _sum += reciprocal_rank(recommendations, relevant_recommendation, k=k)
-    return _sum / len(recommendations_list)
 
 
 def recall(recommendations, relevant_recommendations, k=None):
@@ -186,15 +146,3 @@ def average_precision(recommendations, relevant_recommendations, k=None):
 
     if k is None: return _sum / len(relevant_recommendations)
     return _sum / min(len(relevant_recommendations), k)
-
-
-def mean_average_precision(recommendations_list, relevant_recommendations_list, k=None):
-    """Mean Average Precision at k
-    Example calls:
-    >>> mean_average_precision([[0,1,1], [1,2,1]], [[1], [1,2]]) == 0.75
-    >>> mean_average_precision([[1,3,5], [5,3,1]], [[1,3,4,6], [1,3,4,6]], k=1) == 0.5
-    """
-    _sum = 0
-    for recommendations, relevant_recommendations in zip(recommendations_list, relevant_recommendations_list):
-        _sum += average_precision(recommendations, relevant_recommendations, k=k)
-    return _sum / len(recommendations_list)
