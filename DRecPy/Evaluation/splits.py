@@ -2,6 +2,7 @@ import random
 from tqdm import tqdm
 import math
 from threading import Thread
+from heapq import heappush, heapreplace
 
 
 def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
@@ -35,10 +36,10 @@ def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
     assert len(test_idxs) > 0, f'The test_ratio of {test_ratio} is not enough to split any row from the full dataset.'
 
     if kwds.get('verbose', True):
-        _iter = tqdm(zip(range(len(interaction_dataset)), interaction_dataset.values(columns=['rid'])),
+        _iter = tqdm(zip(range(len(interaction_dataset)), interaction_dataset.values('rid')),
                      total=len(interaction_dataset), desc='Splitting dataset')
     else:
-        _iter = zip(range(len(interaction_dataset)), interaction_dataset.values(columns=['rid']))
+        _iter = zip(range(len(interaction_dataset)), interaction_dataset.values('rid'))
 
     pointer = 0
     for idx, record in _iter:
@@ -53,7 +54,78 @@ def random_split(interaction_dataset, test_ratio=0.25, seed=None, **kwds):
     return ds_train, ds_test
 
 
-def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, max_concurrent_threads=4, **kwds):
+def matrix_split(interaction_dataset, user_test_ratio=0.2, item_test_ratio=0.2, min_user_interactions=0,
+                 seed=0, max_concurrent_threads=4, **kwds):
+    """Dataset split method that uses a matrix split strategy. More specifically, item_test_ratio items from
+    user_test_ratio users are sampled out of the full dataset and moved to the test set, while the missing items and
+    users make the training set.
+
+    Args:
+        interaction_dataset: A InteractionDataset instance containing the user-item interactions.
+        user_test_ratio: Optional float value that represents the percentage of users to be sampled to the test set.
+        item_test_ratio: Optional float value that represents the percentage of items to be sampled to the test set.
+        min_user_interactions: Optional integer that represents the minimum number of interactions each user needs
+            to have to be included in the train or test set. Default: 0.
+        max_concurrent_threads: An optional integer representing the max concurrent threads to use. Default: 4.
+        seed: An integer that is used as a seed value for the pseudorandom number generator.
+            Default: 0.
+        verbose: Optional boolean that indicates if a progress bar showing the splitting progress
+            should be displayed or not. Default: True.
+
+    Returns:
+        Two InteractionDataset instances: the train and test interaction datasets in this order.
+    """
+    assert 0 < user_test_ratio < 1, f'Invalid user_test_ratio of {user_test_ratio}: must be in the range (0, 1)'
+    assert 0 < item_test_ratio < 1, f'Invalid item_test_ratio of {item_test_ratio}: must be in the range (0, 1)'
+
+    rng = random.Random(seed)
+    ds_unique_users = interaction_dataset.unique('user')
+    test_users = rng.sample(ds_unique_users.values_list('user', to_list=True), math.floor(len(ds_unique_users) * user_test_ratio))
+    ds_unique_items = interaction_dataset.unique('item')
+    test_items = rng.sample(ds_unique_items.values_list('item', to_list=True), math.floor(len(ds_unique_items) * item_test_ratio))
+
+    if kwds.get('verbose', True):
+        _iter = tqdm(test_users, total=len(test_users), desc='Splitting dataset')
+    else:
+        _iter = test_users
+
+    threads = []
+    train_rids_to_rem, test_rids = [], []
+    for user in _iter:
+        t = Thread(target=_matrix_split_user, args=(interaction_dataset, train_rids_to_rem, test_rids, user,
+                                                    min_user_interactions, test_items))
+        threads.append(t)
+        t.start()
+
+        if len(threads) >= max_concurrent_threads: [t.join() for t in threads]
+
+    if len(threads) > 0: [t.join() for t in threads]
+
+    ds_test = interaction_dataset.drop(test_rids, keep=True)
+    ds_train = interaction_dataset.drop(train_rids_to_rem + test_rids)
+
+    return ds_train, ds_test
+
+
+def _matrix_split_user(interaction_dataset, train_rids_to_rem, test_rids, user, min_user_interactions, test_items):
+    user_rows_ds = interaction_dataset.select(f'user == {user}')
+
+    if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
+        train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
+        return
+
+    to_test = []
+    for rid, item in user_rows_ds.values(['rid', 'item'], to_list=True):
+        if item in test_items:
+            to_test.append(rid)
+
+    if len(to_test) == len(user_rows_ds): return  # no training records sampled
+
+    test_rids.extend(to_test)
+
+
+def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, last_timestamps=False, seed=0,
+                max_concurrent_threads=4, **kwds):
     """Dataset split method that uses a leave k out strategy. More specifically,
     for each user with more than k interactions, k interactions are randomly selected and taken out
     from the train set and put into the test set. This means that there are never users
@@ -88,13 +160,6 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, max_c
 
     interaction_dataset.assign_internal_ids()  # to speed up search
 
-    if ratio_variant:
-        rng = random.Random(seed)
-        ds_unique_uids = interaction_dataset.unique('uid')
-        test_uids = rng.sample(ds_unique_uids.values_list('uid', to_list=True), math.floor(len(ds_unique_uids) * k))
-        ds_unique_iids = interaction_dataset.unique('iid')
-        test_iids = rng.sample(ds_unique_iids.values_list('iid', to_list=True), math.floor(len(ds_unique_iids) * k))
-
     unique_uids_ds = interaction_dataset.unique('uid')
     if kwds.get('verbose', True):
         _iter = tqdm(unique_uids_ds.values(
@@ -107,14 +172,15 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, max_c
     train_rids_to_rem, test_rids = [], []
     for uid in _iter:
         if ratio_variant:
-            if uid not in test_uids: continue
-
+            seed += 1
             t = Thread(target=_leave_k_out_user_ratio, args=(interaction_dataset, train_rids_to_rem, test_rids,
-                                                             min_user_interactions, uid, test_iids))
+                                                             min_user_interactions, uid, k, random.Random(seed),
+                                                             last_timestamps))
         else:
             seed += 1
             t = Thread(target=_leave_k_out_user_fixed, args=(interaction_dataset, train_rids_to_rem, test_rids,
-                                                             min_user_interactions, uid, k, random.Random(seed)))
+                                                             min_user_interactions, uid, k, random.Random(seed),
+                                                             last_timestamps))
         threads.append(t)
         t.start()
 
@@ -129,33 +195,50 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, seed=0, max_c
     return ds_train, ds_test
 
 
-def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, test_iids):
+def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng,
+                            last_timestamps):
     user_rows_ds = interaction_dataset.select(f'uid == {uid}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
-        train_rids_to_rem.extend([record['rid'] for record in user_rows_ds.values(columns=['rid'])])
+        train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
         return
 
-    to_test = []
-    for rid, iid in user_rows_ds.values(columns=['rid', 'iid'], to_list=True):
-        if iid in test_iids:
-            to_test.append(rid)
+    n_sampled_items = int(len(user_rows_ds) * k)
+    if n_sampled_items == 0: return  # not enough user interactions to sample
 
-    if len(to_test) == len(user_rows_ds): return  # no training records sampled
+    if last_timestamps:
+        sampled_test_rids = []
+        for (rid, timestamp), i in zip(user_rows_ds.values(['rid', 'timestamp'], to_list=True), range(len(user_rows_ds))):
+            if len(sampled_test_rids) < n_sampled_items:
+                heappush(sampled_test_rids, (timestamp, rid))
+            else:
+                heapreplace(sampled_test_rids, (timestamp, rid))
+        test_rids.extend([rid for _, rid in sampled_test_rids])
+    else:
+        sampled_idxs = rng.sample(range(len(user_rows_ds)), n_sampled_items)
+        for rid, i in zip(user_rows_ds.values('rid', to_list=True), range(len(user_rows_ds))):
+            if i in sampled_idxs:
+                test_rids.append(rid)
 
-    test_rids.extend(to_test)
 
-
-def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng):
+def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, uid, k, rng,
+                            last_timestamps):
     user_rows_ds = interaction_dataset.select(f'uid == {uid}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
-        train_rids_to_rem.extend([record['rid'] for record in user_rows_ds.values(columns=['rid'])])
+        train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
         return
 
     if len(user_rows_ds) <= k: return  # not enough user interactions to sample
 
-    sampled_idxs = rng.sample(range(len(user_rows_ds)), k)
-    for rid, i in zip(user_rows_ds.values(columns=['rid'], to_list=True), range(len(user_rows_ds))):
-        if i in sampled_idxs:
-            test_rids.append(rid)
+    if last_timestamps:
+        sampled_test_rids = []
+        for (rid, timestamp), i in zip(user_rows_ds.values(['rid', 'timestamp'], to_list=True), range(len(user_rows_ds))):
+            if len(sampled_test_rids) < k: heappush(sampled_test_rids, (timestamp, rid))
+            else: heapreplace(sampled_test_rids, (timestamp, rid))
+        test_rids.extend([rid for _, rid in sampled_test_rids])
+    else:
+        sampled_idxs = rng.sample(range(len(user_rows_ds)), k)
+        for rid, i in zip(user_rows_ds.values('rid', to_list=True), range(len(user_rows_ds))):
+            if i in sampled_idxs:
+                test_rids.append(rid)
