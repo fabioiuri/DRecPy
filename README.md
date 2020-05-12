@@ -47,44 +47,70 @@ Or directly by cloning the Git repo:
 
 Getting Started
 ---------------
-Here's an example script using one of the implemented recommenders (CDAE), to train and evaluate
+Here's an example script using one of the implemented recommenders (CDAE), to train, with a validation set,  and evaluate
 its ranking performance on the MovieLens 100k data set.
 ```python
 from DRecPy.Recommender import CDAE
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
 from DRecPy.Evaluation import ranking_evaluation
-from DRecPy.Evaluation import predictive_evaluation
+from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Metrics import ndcg
+from DRecPy.Evaluation.Metrics import hit_ratio
 import time
 
-ds_train = get_train_dataset('ml-100k', verbose=False)
-ds_test = get_test_dataset('ml-100k', verbose=False)
+
+ds_train = get_train_dataset('ml-100k')
+ds_test = get_test_dataset('ml-100k')
+ds_train, ds_val = leave_k_out(ds_train, k=1, min_user_interactions=10)
+
+
+def epoch_callback_fn(model):
+    return {'val_' + metric: v for metric, v in
+            ranking_evaluation(model, ds_val, n_pos_interactions=1, n_neg_interactions=100,
+                               generate_negative_pairs=True, k=10, verbose=False, seed=10,
+                               metrics={'HR': (ndcg, {}), 'NDCG': (hit_ratio, {})}).items()}
+
 
 start_train = time.time()
-cdae = CDAE(min_interaction=0, seed=10)
-cdae.fit(ds_train, epochs=50)
+cdae = CDAE(hidden_factors=50, corruption_level=0.2, loss='bce', seed=10)
+cdae.fit(ds_train, learning_rate=0.001, reg_rate=0.001, epochs=80, batch_size=64, neg_ratio=5,
+         epoch_callback_fn=epoch_callback_fn, epoch_callback_freq=20)
 print("Training took", time.time() - start_train)
 
-print(ranking_evaluation(cdae, ds_test, n_test_users=100, seed=10))
-print(predictive_evaluation(cdae, ds_test, skip_errors=True))
+print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_interactions=1, 
+                         n_neg_interactions=100, generate_negative_pairs=True, seed=10, 
+                         max_concurrent_threads=4, verbose=True))
 ```
 
 **Output**:
 
 ```
 [CDAE] Max. interaction value: 5
-[CDAE] Min. interaction value: 1
+[CDAE] Min. interaction value: 0
+[CDAE] Interaction threshold value: 0
 [CDAE] Number of unique users: 943
 [CDAE] Number of unique items: 1680
-[CDAE] Number of training points: 90570
-[CDAE] Sparsity level: approx. 94.2831%
+[CDAE] Number of training points: 89627
+[CDAE] Sparsity level: approx. 94.3426%
 [CDAE] Creating auxiliary structures...
 [CDAE] Model fitted.
-Training took 25.366847276687622
+Training took 1620.2718272209167
 
-{'P@10': 0.061, 'R@10': 0.61, 'HR@10': 0.61, 'NDCG@10': 0.3517, 'RR@10': 0.2734, 'AP@10': 0.2734}
-{'RMSE': 3.1898, 'MSE': 10.1745}
+{'P@1': 0.141, 'P@5': 0.0793, 'P@10': 0.0591, 'R@1': 0.141, 'R@5': 0.3966, 'R@10': 0.5907, 
+'HR@1': 0.141, 'HR@5': 0.3966, 'HR@10': 0.5907, 'NDCG@1': 0.141, 'NDCG@5': 0.2701, 'NDCG@10': 0.3327, 
+'RR@1': 0.141, 'RR@5': 0.2286, 'RR@10': 0.2543, 'AP@1': 0.141, 'AP@5': 0.2286, 'AP@10': 0.2543}
 ```
+
+**Generated Plots**:
+
+- Training
+
+![CDAE Training Performance](https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_training.png?raw=true)
+
+- Evaluation
+
+![CDAE Evaluation Performance](https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_evaluation.png?raw=true)
 
 More quick and easy examples are available [here](https://github.com/fabioiuri/DRecPy/tree/master/examples).
 
