@@ -7,6 +7,7 @@ Note: gradients are evaluated for all output units (the output unit selection st
 from DRecPy.Recommender import RecommenderABC
 import tensorflow as tf
 from heapq import nlargest
+from DRecPy.Sampler import PointSampler
 
 
 class CDAE(RecommenderABC):
@@ -44,9 +45,11 @@ class CDAE(RecommenderABC):
         self._reg = lambda W, W_, V, b, b_: \
             (tf.nn.l2_loss(W) + tf.nn.l2_loss(W_) + tf.nn.l2_loss(V) + tf.nn.l2_loss(b) + tf.nn.l2_loss(b_)) \
             * reg_rate / 2
+        self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
     def _do_batch(self, **kwds):
-        sampled_uid = self._rng.randint(0, self.n_users-1)
+        sampled_uid, _ = self._sampler.sample_one()
+
         with tf.GradientTape() as tape:
             tape.watch(self.W), tape.watch(self.W_), tape.watch(self.V), tape.watch(self.b), tape.watch(self.b_)
             real_preferences, predictions = self._reconstruct(sampled_uid, corrupt=True)
