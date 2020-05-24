@@ -63,11 +63,14 @@ class RecommenderABC(ABC):
                 Default: 5.
             reg_rate: Optional decimal representing the model regularization rate. Default: 0.01.
             epoch_callback_fn: Optional function that is called, for each epoch_callback_freq, with the model at its
-                current state.
+                current state. It receives one argument - the model at its current state - and should return a dict
+                mapping each metric's name to the corresponding value. The results will be displayed in a graph at the
+                end of the model fit and during the fit process on the logged progress bar description only if verbose
+                is set to True.
             epoch_callback_freq: Optional integer representing the frequency in which the epoch_callback_fn is called.
-                Default: 5 (called every 5 epochs).
+                If epoch_callback_fn is not defined, this parameter is ignored. Default: 5 (called every 5 epochs).
             copy_dataset: Optional boolean indicating weather a copy of the given dataset should be made.
-                If set to False, the given dataset instance is used. Defaults: False.
+                If set to False, the given dataset instance is used. Default: False.
 
         Returns:
             None.
@@ -96,7 +99,7 @@ class RecommenderABC(ABC):
         self.fitted = True  # should be able to make predictions after pre fit
 
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
-        epoch_callback_res = None
+        epoch_callback_res, epoch_callback_res_registered = None, True
         epoch_callback_freq = kwds.get('epoch_callback_freq', 5)
         curr_epoch_callback_count = 0
 
@@ -116,6 +119,7 @@ class RecommenderABC(ABC):
 
                 if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
                     curr_epoch_callback_count = epoch_callback_freq
+                    epoch_callback_res_registered = False
                     epoch_callback_res = epoch_callback_fn(self)
                     assert type(epoch_callback_res) is dict, \
                         f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
@@ -123,10 +127,11 @@ class RecommenderABC(ABC):
                 if self.verbose:
                     progress_desc = f'Fitting model... Epoch {e} Avg. Loss: {self._loss_tracker.get_batch_avg_loss():.4f}'
                     if epoch_callback_res is not None:
-                        for k in epoch_callback_res:
-                            self._loss_tracker.add_epoch_callback_result(k, epoch_callback_res[k], e)
-                            progress_desc += f' | {k}: {epoch_callback_res[k]}'
-                        epoch_callback_res = None
+                        for metric in epoch_callback_res:
+                            progress_desc += f' | {metric}: {epoch_callback_res[metric]}'
+                            if not epoch_callback_res_registered:
+                                self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], e)
+                        epoch_callback_res_registered = True
 
                     _iter.set_description(progress_desc)
                     self._loss_tracker.update_epoch_loss()  # update avg training loss
@@ -263,7 +268,7 @@ class RecommenderABC(ABC):
     def _rank(self, uid, iids, n, novelty):
         """Returns a ranked item list in the form of (similarity, item) tuples. uid and iids are internal ids."""
         if novelty:
-            rated_items = self.interaction_dataset.select(f'uid == {uid}').values_list(columns=['iid'], to_list=True)
+            rated_items = self.interaction_dataset.select(f'uid == {uid}').values_list('iid', to_list=True)
             iids = set(iids).difference(set(rated_items))
 
         pred_list = filter(lambda x: x[0] is not None, [(self._predict(uid, iid), iid) for iid in iids])
