@@ -85,6 +85,14 @@ class MemoryInteractionDataset(InteractionDatasetABC):
 
         return new_ds
 
+    def select_one(self, query, columns=None, to_list=False):
+        columns = self._handle_columns(columns)
+        df = self._apply_query(query, in_place=False)
+        if df.shape[0] == 0: return None
+
+        df_columns = [col for col in self.columns if col != 'rid']
+        return self._from_row_to_record(df[df_columns].values[0], df.index[0], columns, df_columns, to_list)
+
     def select_random_generator(self, query=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
         assert len(self) > 0, 'No records were found.'
@@ -438,7 +446,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             elif column == 'item' and self.has_internal_ids and 'int' not in col_dtype:
                 column = 'iid'
                 value = self.item_to_iid(value)
-            else:
+            elif column not in ['iid', 'uid', 'rid']:
                 try:
                     if 'int' in col_dtype:
                         if type(value) != float and type(value) != int:
