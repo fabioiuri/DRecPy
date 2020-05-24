@@ -16,9 +16,9 @@ class BaseKNN(RecommenderABC, ABC):
 
     This class implements the skeleton methods for building a basic neighbour-based CF.
     The following methods are still required to be implemented:
-        _fit(): should fit the model.
-        _predict_default(): should return the default prediction value that is used
-            when a minimum number of neighbours is not found. Only used when use_averages=True.
+    _fit(): should fit the model.
+    _predict_default(): should return the default prediction value that is used
+    when a minimum number of neighbours is not found. Only used when use_averages=True.
 
     Attributes:
         k: An integer representing the number of neighbours used to make a prediction.
