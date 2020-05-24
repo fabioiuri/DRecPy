@@ -1,15 +1,11 @@
 DRecPy.Recommender package
 ==========================
 
-Subpackages
------------
 
 .. toctree::
 
     DRecPy.Recommender.Baseline
 
-Submodules
-----------
 
 DRecPy.Recommender.cdae module
 ------------------------------
@@ -31,15 +27,6 @@ DRecPy.Recommender.recommender\_abc module
 ------------------------------------------
 
 .. automodule:: DRecPy.Recommender.recommender_abc
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: DRecPy.Recommender
     :members:
     :undoc-members:
     :show-inheritance:

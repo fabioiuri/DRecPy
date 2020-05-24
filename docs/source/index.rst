@@ -25,6 +25,8 @@ Welcome to DRecPy's documentation!
    api_docs/DRecPy.Sampler
    api_docs/DRecPy.Evaluation
 
+|Documentation Status| |License: MIT|
+
 Introduction
 ------------
 
@@ -53,7 +55,7 @@ The main key features DRecPy provides are listed bellow:
 - **All methods with stochastic factors receive a seed parameter**, in order to allow result reproducibility.
 
 For more information about the framework and its components, please
-visit the `documentation page`_.
+visit the `documentation page <https://drecpy.readthedocs.io/>`__.
 
 Installation
 ------------
@@ -62,86 +64,120 @@ With pip:
 
 ::
 
-   $ pip install drecpy
+    $ pip install drecpy
 
-If you can’t get the latest version from PyPi:
+If you can't get the latest version from PyPi:
 
 ::
 
-   $ pip install git+https://github.com/fabioiuri/DRecPy
+    $ pip install git+https://github.com/fabioiuri/DRecPy
 
 Or directly by cloning the Git repo:
 
 ::
 
-   $ git clone https://github.com/fabioiuri/DRecPy
-   $ cd DRecPy
-   $ python setup.py install
+    $ git clone https://github.com/fabioiuri/DRecPy
+    $ cd DRecPy
+    $ python setup.py install
 
 Getting Started
 ---------------
 
-Here’s an example script using one of the implemented recommenders
-(CDAE), to train and evaluate its ranking performance on the MovieLens
-100k data set.
+Here's an example script using one of the implemented recommenders
+(CDAE), to train, with a validation set, and evaluate its ranking
+performance on the MovieLens 100k data set.
 
 .. code:: python
 
-   from DRecPy.Recommender import CDAE
-   from DRecPy.Dataset import get_train_dataset
-   from DRecPy.Dataset import get_test_dataset
-   from DRecPy.Evaluation import ranking_evaluation
-   from DRecPy.Evaluation import predictive_evaluation
-   import time
+    from DRecPy.Recommender import CDAE
+    from DRecPy.Dataset import get_train_dataset
+    from DRecPy.Dataset import get_test_dataset
+    from DRecPy.Evaluation.Processes import ranking_evaluation
+    from DRecPy.Evaluation.Splits import leave_k_out
+    from DRecPy.Evaluation.Metrics import ndcg
+    from DRecPy.Evaluation.Metrics import hit_ratio
+    import time
 
-   ds_train = get_train_dataset('ml-100k', verbose=False)
-   ds_test = get_test_dataset('ml-100k', verbose=False)
 
-   start_train = time.time()
-   cdae = CDAE(min_interaction=0, seed=10)
-   cdae.fit(ds_train, epochs=50)
-   print("Training took", time.time() - start_train)
+    ds_train = get_train_dataset('ml-100k')
+    ds_test = get_test_dataset('ml-100k')
+    ds_train, ds_val = leave_k_out(ds_train, k=1, min_user_interactions=10)
 
-   print(ranking_evaluation(cdae, ds_test, n_test_users=100, seed=10))
-   print(predictive_evaluation(cdae, ds_test, skip_errors=True))
+
+    def epoch_callback_fn(model):
+        return {'val_' + metric: v for metric, v in
+                ranking_evaluation(model, ds_val, n_pos_interactions=1, n_neg_interactions=100,
+                                   generate_negative_pairs=True, k=10, verbose=False, seed=10,
+                                   metrics={'HR': (ndcg, {}), 'NDCG': (hit_ratio, {})}).items()}
+
+
+    start_train = time.time()
+    cdae = CDAE(hidden_factors=50, corruption_level=0.2, loss='bce', seed=10)
+    cdae.fit(ds_train, learning_rate=0.001, reg_rate=0.001, epochs=80, batch_size=64, neg_ratio=5,
+             epoch_callback_fn=epoch_callback_fn, epoch_callback_freq=20)
+    print("Training took", time.time() - start_train)
+
+    print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_interactions=1,
+                             n_neg_interactions=100, generate_negative_pairs=True, seed=10,
+                             max_concurrent_threads=4, verbose=True))
 
 **Output**:
 
 ::
 
-   [CDAE] Max. interaction value: 5
-   [CDAE] Min. interaction value: 1
-   [CDAE] Number of unique users: 943
-   [CDAE] Number of unique items: 1680
-   [CDAE] Number of training points: 90570
-   [CDAE] Sparsity level: approx. 94.2831%
-   [CDAE] Creating auxiliary structures...
-   [CDAE] Model fitted.
-   Training took 25.366847276687622
+    [CDAE] Max. interaction value: 5
+    [CDAE] Min. interaction value: 0
+    [CDAE] Interaction threshold value: 0
+    [CDAE] Number of unique users: 943
+    [CDAE] Number of unique items: 1680
+    [CDAE] Number of training points: 89627
+    [CDAE] Sparsity level: approx. 94.3426%
+    [CDAE] Creating auxiliary structures...
+    [CDAE] Model fitted.
+    Training took 1620.2718272209167
 
-   {'P@10': 0.061, 'R@10': 0.61, 'HR@10': 0.61, 'NDCG@10': 0.3517, 'RR@10': 0.2734, 'AP@10': 0.2734}
-   {'RMSE': 3.1898, 'MSE': 10.1745}
+    {'P@1': 0.141, 'P@5': 0.0793, 'P@10': 0.0591, 'R@1': 0.141, 'R@5': 0.3966, 'R@10': 0.5907,
+    'HR@1': 0.141, 'HR@5': 0.3966, 'HR@10': 0.5907, 'NDCG@1': 0.141, 'NDCG@5': 0.2701, 'NDCG@10': 0.3327,
+    'RR@1': 0.141, 'RR@5': 0.2286, 'RR@10': 0.2543, 'AP@1': 0.141, 'AP@5': 0.2286, 'AP@10': 0.2543}
 
-More quick and easy examples are available `here`_.
+**Generated Plots**:
+
+-  Training
+
+.. figure:: https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_training.png?raw=true
+   :alt: CDAE Training Performance
+
+   CDAE Training Performance
+
+-  Evaluation
+
+.. figure:: https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_evaluation.png?raw=true
+   :alt: CDAE Evaluation Performance
+
+   CDAE Evaluation Performance
+
+More quick and easy examples are available `here <https://github.com/fabioiuri/DRecPy/tree/master/examples>`__.
+
 
 Implemented Models
 ------------------
 
-================ ==============================================
-Recommender Type Name
-================ ==============================================
-Learn-to-rank    `CDAE (Collaborative Denoising Auto-Encoder)`_
-Learn-to-rank    `DMF (Deep Matrix Factorization)`_
-================ ==============================================
++--------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Recommender Type   | Name                                                                                                                                                        |
++====================+=============================================================================================================================================================+
+| Learn-to-rank      | `CDAE (Collaborative Denoising Auto-Encoder) <https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.cdae>`__   |
++--------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Learn-to-rank      | `DMF (Deep Matrix Factorization) <https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.dmf>`__                |
++--------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Implemented Baselines (non deep learning based)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-================ ================
-Recommender Type Name
-================ ================
-Predictive       `User/Item KNN`_
-================ ================
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
+| Recommender Type   | Name                                                                                                                                           |
++====================+================================================================================================================================================+
+| Predictive         | `User/Item KNN <https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.Baseline.html#drecpy-recommender-baseline-knn-module>`__   |
++--------------------+------------------------------------------------------------------------------------------------------------------------------------------------+
 
 Benchmarks
 ----------
@@ -151,7 +187,8 @@ TODO
 License
 -------
 
-Check `LICENCE.md`_.
+Check
+`LICENCE.md <https://github.com/fabioiuri/DRecPy/blob/master/LICENSE.md>`__.
 
 Contributors
 ------------
@@ -178,19 +215,11 @@ Planned work:
 - Refine and clean unit tests
 
 If you have any bugs to report or update suggestions, you can use
-DRecPy's `github issues page`_ or email me directly to
-fabioiuri@live.com.
+DRecPy's `github issues
+page <https://github.com/fabioiuri/DRecPy/issues>`__ or email me
+directly to fabioiuri@live.com.
 
-.. _documentation page: https://drecpy.readthedocs.io/
-.. |GitHub version| image:: https://badge.fury.io/py/DRecPy.svg
-   :target:
 .. |Documentation Status| image:: https://readthedocs.org/projects/drecpy/badge/?version=latest
    :target: https://drecpy.readthedocs.io/en/latest/?badge=latest
 .. |License: MIT| image:: https://img.shields.io/badge/License-MIT-yellow.svg
    :target: https://opensource.org/licenses/MIT
-.. _here: https://github.com/fabioiuri/DRecPy/tree/master/examples
-.. _CDAE (Collaborative Denoising Auto-Encoder): https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.cdae
-.. _DMF (Deep Matrix Factorization): https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.dmf
-.. _User/Item KNN: https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.Baseline.html#drecpy-recommender-baseline-knn-module
-.. _LICENCE.md: https://github.com/fabioiuri/DRecPy/blob/master/LICENSE.md
-.. _github issues page: https://github.com/fabioiuri/DRecPy/issues

@@ -1,8 +1,6 @@
 DRecPy.Dataset package
 ======================
 
-Submodules
-----------
 
 DRecPy.Dataset.dataset\_abc module
 ----------------------------------
@@ -20,6 +18,14 @@ DRecPy.Dataset.dataset\_factory module
     :undoc-members:
     :show-inheritance:
 
+DRecPy.Dataset.mem\_dataset module
+----------------------------------
+
+.. automodule:: DRecPy.Dataset.mem_dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 DRecPy.Dataset.db\_dataset module
 ---------------------------------
 
@@ -32,23 +38,6 @@ DRecPy.Dataset.integrated\_datasets module
 ------------------------------------------
 
 .. automodule:: DRecPy.Dataset.integrated_datasets
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-DRecPy.Dataset.mem\_dataset module
-----------------------------------
-
-.. automodule:: DRecPy.Dataset.mem_dataset
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: DRecPy.Dataset
     :members:
     :undoc-members:
     :show-inheritance:
