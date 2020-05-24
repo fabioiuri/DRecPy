@@ -2,7 +2,7 @@ import os
 from zipfile import ZipFile
 import requests
 from DRecPy.Dataset import InteractionDataset
-from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Splits import leave_k_out
 
 
 class DatasetReadConfig:

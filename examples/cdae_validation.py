@@ -2,7 +2,7 @@ from DRecPy.Recommender import CDAE
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
 from DRecPy.Evaluation import ranking_evaluation
-from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Metrics import ndcg
 from DRecPy.Evaluation.Metrics import hit_ratio
 import time
@@ -10,7 +10,7 @@ import time
 
 ds_train = get_train_dataset('ml-100k')
 ds_test = get_test_dataset('ml-100k')
-ds_train, ds_val = leave_k_out(ds_train, k=1, min_user_interactions=10)
+ds_train, ds_val = leave_k_out(ds_train, k=1, min_user_interactions=10, seed=0)
 
 
 def epoch_callback_fn(model):

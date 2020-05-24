@@ -1,14 +1,15 @@
 from DRecPy.Recommender.Baseline import UserKNN
 from DRecPy.Dataset import InteractionDataset
 from DRecPy.Evaluation import ranking_evaluation
-from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Splits import matrix_split
 from DRecPy.Evaluation.Metrics import precision
 from DRecPy.Evaluation.Metrics import recall
 from DRecPy.Evaluation.Metrics import ndcg
 
 ds = InteractionDataset('./arm_total_1998_2019.csv', columns=['user', 'item', 'interaction'], verbose=False)
 
-ds_train, ds_test = leave_k_out(ds, min_user_interactions=20, k=0.2, seed=25, verbose=False)
+ds_train, ds_test = matrix_split(ds, min_user_interactions=20, user_test_ratio=0.2, item_test_ratio=0.2, seed=25,
+                                 verbose=False)
 
 # cosine sim
 knn = UserKNN(k=10, m=0, sim_metric='cosine_cf', shrinkage=None, seed=25, use_averages=False, verbose=True)

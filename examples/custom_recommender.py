@@ -23,6 +23,6 @@ from DRecPy.Dataset import get_train_dataset
 
 ds_train = get_train_dataset('ml-100k')
 
-recommender = TestRecommender()
+recommender = TestRecommender(verbose=False)
 recommender.fit(ds_train)
 print(recommender.predict(1, 1))
