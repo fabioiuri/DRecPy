@@ -53,8 +53,8 @@ its ranking performance on the MovieLens 100k data set.
 from DRecPy.Recommender import CDAE
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
-from DRecPy.Evaluation import ranking_evaluation
-from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Processes import ranking_evaluation
+from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Metrics import ndcg
 from DRecPy.Evaluation.Metrics import hit_ratio
 import time
