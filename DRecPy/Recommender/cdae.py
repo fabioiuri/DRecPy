@@ -96,7 +96,10 @@ class CDAE(RecommenderABC):
 
         if novelty:
             user_ds = self.interaction_dataset.select(f'uid == {uid}')
-            iids = set([iid for iid in iids if not user_ds.exists(f'iid == {iid}')])
+            if len(user_ds) < len(iids):
+                iids = set(iids).difference(set(user_ds.values_list('iid', to_list=True)))
+            else:
+                iids = set([iid for iid in iids if not user_ds.exists(f'iid == {iid}')])
         else:
             iids = set(iids)
 
