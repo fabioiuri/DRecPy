@@ -16,7 +16,8 @@ class CDAE(RecommenderABC):
         hidden_factors: An integer defining the number of units for the hidden layer.
         corruption_level: A decimal value representing the level of corruption to apply to the
             given interactions / ratings during training.
-        loss: The loss function used to optimize the model. Supported: mse, bce. Default: bce.
+        loss: A string or function that represents the loss function used to optimize the model.
+            Supported: mse, bce or functions. Default: bce.
 
     For more arguments, refer to the base class: :obj:`DRecPy.Recommender.RecommenderABC`.
     """
@@ -25,7 +26,8 @@ class CDAE(RecommenderABC):
 
         self.hidden_factors = hidden_factors
         self.corruption_level = corruption_level
-        if loss == 'mse':  self.loss = tf.losses.MeanSquaredError()
+        if callable(loss): self.loss = loss
+        elif loss == 'mse':  self.loss = tf.losses.MeanSquaredError()
         elif loss == 'bce': self.loss = tf.losses.BinaryCrossentropy()
         else: raise Exception(f'Loss function "{loss}" is not supported. Supported losses: "mse", "bce".')
 
@@ -38,8 +40,8 @@ class CDAE(RecommenderABC):
         self.b = tf.Variable(weight_initializer(shape=[self.hidden_factors]))
         self.b_ = tf.Variable(weight_initializer(shape=[self.n_items]))
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-        self.reg = lambda W, W_, V, b, b_: \
+        self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self._reg = lambda W, W_, V, b, b_: \
             (tf.nn.l2_loss(W) + tf.nn.l2_loss(W_) + tf.nn.l2_loss(V) + tf.nn.l2_loss(b) + tf.nn.l2_loss(b_)) \
             * reg_rate / 2
 
@@ -48,10 +50,10 @@ class CDAE(RecommenderABC):
         with tf.GradientTape() as tape:
             tape.watch(self.W), tape.watch(self.W_), tape.watch(self.V), tape.watch(self.b), tape.watch(self.b_)
             real_preferences, predictions = self._reconstruct(sampled_uid, corrupt=True)
-            loss = self.loss(real_preferences, predictions) + self.reg(self.W, self.W_, self.V, self.b, self.b_)
+            loss = self.loss(real_preferences, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
 
         grads = tape.gradient(loss, [self.W, self.W_, self.V, self.b, self.b_])
-        self.optimizer.apply_gradients(zip(grads, [self.W, self.W_, self.V, self.b, self.b_]))
+        self._optimizer.apply_gradients(zip(grads, [self.W, self.W_, self.V, self.b, self.b_]))
 
         return loss
 
