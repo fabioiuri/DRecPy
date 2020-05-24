@@ -1,4 +1,4 @@
-from DRecPy.Evaluation import leave_k_out
+from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Dataset import get_full_dataset
 import time
 
