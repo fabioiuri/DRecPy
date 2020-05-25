@@ -7,12 +7,20 @@ from DRecPy.Evaluation.Metrics import average_precision
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from threading import Thread
+from multiprocessing.pool import ThreadPool
+from threading import Lock
+import time
+
+n_tasks_done = 0
+n_tasks_lock = Lock()
+metric_lock = Lock()
 
 
-def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interactions=None, n_neg_interactions=None, k=10,
+def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_interactions=None, n_neg_interactions=None,
                        generate_negative_pairs=False, novelty=False, seed=0, max_concurrent_threads=4, **kwds):
     """Executes a ranking evaluation process, where the given model will be evaluated under the provided settings.
+    This function is not thread-safe (i.e. concurrent calls might produce unexpected results). Instead of trying this,
+    increase the max_concurrent_threads argument to speed up the process (if you've the available cores).
 
     Args:
         model: An instance of a Recommender to be evaluated.
@@ -20,6 +28,8 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
             training data. Evaluating on train data is not ideal for assessing the model's performance.
         n_test_users: An optional integer representing the number of users to evaluate the produced rankings.
             Default: Number of unique users of the provided test dataset.
+        k: An optional integer (or a list of integers) representing the truncation factor (keep the first k elements for
+             each ranked list), which then affects the produced metric evaluation. Default: 10.
         n_pos_interactions: The number of positive interactions to sample into the list that is going to be ranked and
             evaluated for each user. If for a given user, there's less than n_pos_interactions positive interactions,
             the user's evaluation will be skipped. When this argument is not provided, all positive interactions on the
@@ -39,8 +49,6 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
             considered negative. Default: model.interaction_threshold.
         novelty: A boolean indicating whether only novel recommendations should be taken into account or not.
             Default: False.
-        k: An optional integer (or a list of integers) representing the truncation factor (keep the first k elements for
-             each ranked list), which then affects the produced metric evaluation. Default: 10.
         metrics: An optional dict mapping the names of the metrics to a tuple containing the metric eval function as the
             first element, and the default arguments to call it as the second element.
             Eg: {'f_score': (f_score, {beta: 1.2})}. Default: dict with the following metrics: precision at k, recall
@@ -101,28 +109,37 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, n_pos_interaction
 
     if kwds.get('verbose', True):
         _iter = tqdm(unique_test_users_ds.values(['user'], to_list=True),
-                     total=n_test_users, desc='Evaluating model ranking performance', position=0, leave=True)
+                     total=n_test_users, desc='Starting user evaluation tasks', position=0, leave=True)
     else:
         _iter = unique_test_users_ds.values(['user'], to_list=True)
 
-    threads = []
+    global n_tasks_done
+    n_tasks_done, n_tasks = 0, 0
+
+    pool = ThreadPool(processes=max_concurrent_threads)
     for user in _iter:
         if num_users_made >= n_test_users: break  # reach max number of rankings
 
-        t = Thread(target=_ranking_evaluation_user, args=(model, user, ds_test, interaction_threshold,
-                                                          n_pos_interactions, n_neg_interactions, train_evaluation,
-                                                          metrics, novelty, metric_sums, k, generate_negative_pairs,
-                                                          random.Random(seed)))
+        pool.apply_async(_ranking_evaluation_user, (model, user, ds_test, interaction_threshold, n_pos_interactions,
+                                                    n_neg_interactions, train_evaluation, metrics, novelty, metric_sums,
+                                                    k, generate_negative_pairs, random.Random(seed)))
+        n_tasks += 1
         num_users_made += 1
         seed += 1
-        threads.append(t)
-        t.start()
 
-        if len(threads) >= max_concurrent_threads:
-            [t.join() for t in threads]
-            threads = []
+    pool.close()  # Done adding tasks
 
-    if len(threads) > 0:  [t.join() for t in threads]
+    if kwds.get('verbose', True):
+        curr_done = 0
+        pbar = tqdm(total=n_tasks, desc='Evaluating model ranking performance', position=0, leave=True)
+        while n_tasks_done <= n_tasks:
+            pbar.update(n_tasks_done - curr_done)
+            curr_done = n_tasks_done
+            if n_tasks_done == n_tasks:
+                break
+            time.sleep(1)
+
+    pool.join()  # Wait for all tasks to complete
 
     results = {m + f'@{k}': round(metric_sums[(m, k)][0] / metric_sums[(m, k)][1], 4) if metric_sums[(m, k)][1] > 0 else 0
                for m, k in metric_sums}
@@ -145,13 +162,18 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                              train_evaluation, metrics, novelty, metric_sums, k, generate_negative_pairs, rng):
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
+    global n_tasks_done
     user_ds = ds_test.select(f'user == {user}')
+
     # get positive interactions
     user_test_pos_ds = user_ds.select(f'interaction >= {interaction_threshold}')
     if n_pos_interactions is None:
         user_interacted_items = user_test_pos_ds.values_list(['item', 'interaction'])
     else:
-        if len(user_test_pos_ds) < n_pos_interactions: return  # not enough positive interactions
+        if len(user_test_pos_ds) < n_pos_interactions:  # not enough positive interactions
+            with n_tasks_lock:
+                n_tasks_done += 1
+            return
         user_interacted_items = rng.sample(user_test_pos_ds.values_list(['item', 'interaction']), n_pos_interactions)
 
     best_item = None if len(user_interacted_items) == 0 else \
@@ -186,7 +208,10 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
 
     # join and shuffle all items
     all_items = user_interacted_items + user_non_interacted_items
-    if len(all_items) == 0: return
+    if len(all_items) == 0:
+        with n_tasks_lock:
+            n_tasks_done += 1
+        return
     rng.shuffle(all_items)
 
     # rank according to model
@@ -195,23 +220,27 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                    for item in all_items}
 
     # evaluate performance
-    for m in metrics:
-        for k_ in k:
-            metric_fn = metrics[m][0]
-            param_names = metric_fn.__code__.co_varnames
-            params = {**metrics[m][1]}
-            for param_name in param_names:
-                if param_name == 'recommendations':
-                    params[param_name] = recommendations
-                elif param_name == 'relevant_recommendations':
-                    params[param_name] = user_interacted_items
-                elif param_name == 'relevant_recommendation':
-                    params[param_name] = best_item
-                elif param_name == 'relevancies':
-                    params[param_name] = relevancies
-                elif param_name == 'k':
-                    params[param_name] = k_
-            try:
-                metric_sums[(m, k_)][0] += metric_fn(**params)
-                metric_sums[(m, k_)][1] += 1
-            except: pass
+    with metric_lock:
+        for m in metrics:
+            for k_ in k:
+                metric_fn = metrics[m][0]
+                param_names = metric_fn.__code__.co_varnames
+                params = {**metrics[m][1]}
+                for param_name in param_names:
+                    if param_name == 'recommendations':
+                        params[param_name] = recommendations
+                    elif param_name == 'relevant_recommendations':
+                        params[param_name] = user_interacted_items
+                    elif param_name == 'relevant_recommendation':
+                        params[param_name] = best_item
+                    elif param_name == 'relevancies':
+                        params[param_name] = relevancies
+                    elif param_name == 'k':
+                        params[param_name] = k_
+                try:
+                    metric_sums[(m, k_)][0] += metric_fn(**params)
+                    metric_sums[(m, k_)][1] += 1
+                except: pass
+
+    with n_tasks_lock:
+        n_tasks_done += 1
