@@ -1,6 +1,6 @@
 from DRecPy.Recommender.Baseline import UserKNN
 from DRecPy.Dataset import InteractionDataset
-from DRecPy.Evaluation import ranking_evaluation
+from DRecPy.Evaluation.Processes import ranking_evaluation
 from DRecPy.Evaluation.Splits import matrix_split
 from DRecPy.Evaluation.Metrics import precision
 from DRecPy.Evaluation.Metrics import recall

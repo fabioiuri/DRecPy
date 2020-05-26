@@ -1,6 +1,6 @@
 from DRecPy.Recommender.Baseline import UserKNN
 from DRecPy.Dataset import get_full_dataset
-from DRecPy.Evaluation import ranking_evaluation
+from DRecPy.Evaluation.Processes import ranking_evaluation
 from DRecPy.Evaluation.Splits import matrix_split
 from DRecPy.Evaluation.Metrics import precision
 from DRecPy.Evaluation.Metrics import recall
@@ -12,7 +12,7 @@ ds_train, ds_test = matrix_split(ds, user_test_ratio=0.2, item_test_ratio=0.2, s
                                  verbose=False)
 
 # cosine sim
-knn = UserKNN(k=30, m=0, sim_metric='cosine_cf', shrinkage=None, seed=15, use_averages=False, verbose=True)
+knn = UserKNN(k=10, m=0, sim_metric='cosine_cf', shrinkage=None, seed=15, use_averages=False, verbose=True)
 knn.fit(ds_train)
 
 evaluation = ranking_evaluation(knn, ds_test, interaction_threshold=5, k=list(range(1, 11)),
