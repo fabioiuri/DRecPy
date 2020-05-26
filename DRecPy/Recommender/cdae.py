@@ -18,7 +18,7 @@ class CDAE(RecommenderABC):
         corruption_level: A decimal value representing the level of corruption to apply to the
             given interactions / ratings during training.
         loss: A string or function that represents the loss function used to optimize the model.
-            Supported: mse, bce or functions. Default: bce.
+            Supported: mse, bce or functions (with arguments: real_preferences, predictions). Default: bce.
 
     For more arguments, refer to the base class: :obj:`DRecPy.Recommender.RecommenderABC`.
     """
@@ -27,9 +27,9 @@ class CDAE(RecommenderABC):
 
         self.hidden_factors = hidden_factors
         self.corruption_level = corruption_level
-        if callable(loss): self.loss = loss
-        elif loss == 'mse':  self.loss = tf.losses.MeanSquaredError()
-        elif loss == 'bce': self.loss = tf.losses.BinaryCrossentropy()
+        if callable(loss): self._loss = loss
+        elif loss == 'mse':  self._loss = tf.losses.MeanSquaredError()
+        elif loss == 'bce': self._loss = tf.losses.BinaryCrossentropy()
         else: raise Exception(f'Loss function "{loss}" is not supported. Supported losses: "mse", "bce".')
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
@@ -53,7 +53,7 @@ class CDAE(RecommenderABC):
         with tf.GradientTape() as tape:
             tape.watch(self.W), tape.watch(self.W_), tape.watch(self.V), tape.watch(self.b), tape.watch(self.b_)
             real_preferences, predictions = self._reconstruct(sampled_uid, corrupt=True)
-            loss = self.loss(real_preferences, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
+            loss = self._loss(real_preferences, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
 
         grads = tape.gradient(loss, [self.W, self.W_, self.V, self.b, self.b_])
         self._optimizer.apply_gradients(zip(grads, [self.W, self.W_, self.V, self.b, self.b_]))
