@@ -8,14 +8,9 @@ import numpy as np
 import shutil
 import os
 
-""" available_datasets """
-
 
 def test_available_datasets_0():
     assert np.array_equal(available_datasets(), ['ml-100k', 'ml-1m', 'ml-10m', 'ml-20m', 'bx'])
-
-
-""" get_full_dataset """
 
 
 def test_get_full_dataset_0():
@@ -114,9 +109,6 @@ def test_get_full_dataset_8():
     assert next(ret.values()) == {'interaction': 3.5, 'user': 1, 'item': 2, 'rid': 0, 'timestamp': 1112486027}
 
 
-""" get_test_dataset """
-
-
 def test_get_test_dataset_0():
     try:
         get_test_dataset('')
@@ -167,9 +159,6 @@ def test_get_test_dataset_7():
     assert (len(ret), len(ret.columns)) == (1384930, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
            {'user': 1, 'item': 47, 'interaction': 3.5, 'timestamp': 1112484727}
-
-
-""" get_train_dataset """
 
 
 def test_get_train_dataset_0():

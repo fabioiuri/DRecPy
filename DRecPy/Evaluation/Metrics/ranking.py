@@ -2,12 +2,18 @@ import math
 
 
 def dcg(recommendations, relevancies, k=None, strong_relevancy=True):
-    """Discounted Cumulative Gain at k
-    Example calls:
-    >>> dcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 45.64282878502658
-    >>> dcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 10.271924937667158
-    >>> dcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 3.0
-    >>> dcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 2.0
+    """Discounted Cumulative Gain at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevancies: A dict that should map recommended ids to their relevancy value.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+        strong_relevancy: An optional boolean indicating which variant of the DCG is used. If set to True,
+            usually results in smaller values than when it's set to False. Default: True.
+
+    Returns:
+        The computed Discounted Cumulative Gain value.
     """
     if k is not None: recommendations = recommendations[:k]
 
@@ -24,12 +30,19 @@ def dcg(recommendations, relevancies, k=None, strong_relevancy=True):
 
 
 def ndcg(recommendations, relevancies, k=None, strong_relevancy=True):
-    """Normalized Discounted Cumulative Gain at k
-    Example calls:
-    >>> ndcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 1.0
-    >>> ndcg([1, 3, 2, 6, 5, 4], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 1.0
-    >>> ndcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=True) == 0.06572774036705124
-    >>> ndcg([6], {1: 5, 2: 3, 3: 4, 4: 0, 5: 1, 6: 2}, strong_relevancy=False) == 0.194705472648655954
+    """Normalized Discounted Cumulative Gain at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevancies: A dict that should map ids to their relevancy value. Note that both relevant and irrelevant
+            item identifiers should be present on this dict, so that the ideal recommendation list can be computed.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+        strong_relevancy: An optional boolean indicating which variant of the DCG is used. If set to True,
+            usually results in smaller values than when it's set to False. Default: True.
+
+    Returns:
+        The computed Normalized Discounted Cumulative Gain value.
     """
     curr_dcg = dcg(recommendations, relevancies, k=k, strong_relevancy=strong_relevancy)
     best_recommendations = sorted(relevancies.keys(), key=lambda x: -relevancies[x])
@@ -39,14 +52,16 @@ def ndcg(recommendations, relevancies, k=None, strong_relevancy=True):
 
 
 def hit_ratio(recommendations, relevant_recommendations, k=None):
-    """Hit Ratio at k
-    Example calls:
-    >>> hit_ratio([1,2,3], [3]) == 1.0
-    >>> hit_ratio([1,2,3], [3,2]) == 1.0
-    >>> hit_ratio([1,2,3], [3,2,5]) == 0.6666666666666666
-    >>> hit_ratio([1,2,3], [3,2], k=2) == 0.5
-    >>> hit_ratio([1,2], [3,2,5]) == 0.3333333333333333
-    >>> hit_ratio([1,2], [3,2,5], k=2) == 0.3333333333333333
+    """Hit Ratio at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendations: A list with the identifiers of the relevant recommendation items.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+
+    Returns:
+        The computed Hit Ratio value.
     """
     if k is not None: recommendations = recommendations[:k]
 
@@ -57,18 +72,16 @@ def hit_ratio(recommendations, relevant_recommendations, k=None):
 
 
 def reciprocal_rank(recommendations, relevant_recommendation, k=None):
-    """Reciprocal Rank at k
-    Example calls:
-    >>> reciprocal_rank([1,2,3], 1) == 1.0
-    >>> reciprocal_rank([1,2,3], 2) == 0.5
-    >>> reciprocal_rank([1,2,3], 3) == 0.3333333333333333
-    >>> reciprocal_rank([1,2,3], 4) == 0
-    >>> reciprocal_rank([1,2,3], 3, k=2) == 0
-    >>> reciprocal_rank([1,2,3], 2, k=2) == 0.5
-    :param recommendations:
-    :param relevant_recommendation:
-    :param k:
-    :return:
+    """Reciprocal Rank at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendation: The identifier of the most relevant item.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+
+    Returns:
+        The computed Reciprocal Rank value.
     """
     if k is not None: recommendations = recommendations[:k]
 
@@ -78,12 +91,16 @@ def reciprocal_rank(recommendations, relevant_recommendation, k=None):
 
 
 def recall(recommendations, relevant_recommendations, k=None):
-    """Recall at k
-    >>> recall([1,2,3], [1,2,3]) == 1.0
-    >>> recall([1,2,3], [2,3]) == 1.0
-    >>> recall([1,2,3], [2,3,4]) == 0.6666666666666666
-    >>> recall([1,2,3], [4]) == 0.0
-    >>> recall([1,2,3], [2,3], k=2) == 0.5
+    """Recall at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendations: A list with the identifiers of the relevant recommendation items.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+
+    Returns:
+        The computed Recall value.
     """
     if k is not None: recommendations = recommendations[:k]
 
@@ -92,12 +109,16 @@ def recall(recommendations, relevant_recommendations, k=None):
 
 
 def precision(recommendations, relevant_recommendations, k=None):
-    """Precision at k
-    >>> precision([1,2,3], [1,2,3]) == 1.0
-    >>> precision([1,2,3], [2,3]) == 0.6666666666666666
-    >>> precision([1,2,3], [2,3,4]) == 0.6666666666666666
-    >>> precision([1,2,3], [4]) == 0.0
-    >>> precision([1,2,3], [2,3], k=2) == 0.5
+    """Precision at k.
+
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendations: A list with the identifiers of the relevant recommendation items.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+
+    Returns:
+        The computed Precision value.
     """
     if k is not None: recommendations = recommendations[:k]
 
@@ -106,16 +127,20 @@ def precision(recommendations, relevant_recommendations, k=None):
 
 
 def f_score(recommendations, relevant_recommendations, k=None, beta=1):
-    """F-score at k
-    >>> f_score([1], [1, 2, 4, 8]) == 0.4
-    >>> f_score([1, 2], [1, 2, 4, 8]) == 0.6666666666666666
-    >>> f_score([1, 2, 3], [1, 2, 4, 8]) == 0.5714285714285715
-    >>> f_score([1, 2, 3, 4], [1, 2, 4, 8]) == 0.75
-    >>> f_score([1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 4, 8]) == 0.6666666666666666
-    >>> f_score([1, 2, 3, 4, 5, 6, 7, 8], [1, 2, 4, 8], k=4) == 0.75
-    >>> f_score([1, 2, 4, 8], [1, 2, 4, 8]) == 1.0
-    """
+    """F-score at k.
 
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendations: A list with the identifiers of the relevant recommendation items.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+        beta: An optional integer representing the weight of the recall value on the combined score.
+            Beta > 1 favours recall over precision, while beta < 1 favours precision over recall.
+            Default: 1.
+
+    Returns:
+        The computed F-score value.
+    """
     p = precision(recommendations, relevant_recommendations, k=k)
     r = recall(recommendations, relevant_recommendations, k=k)
 
@@ -123,19 +148,16 @@ def f_score(recommendations, relevant_recommendations, k=None, beta=1):
 
 
 def average_precision(recommendations, relevant_recommendations, k=None):
-    """Average Precision at k
-    >>> average_precision([0,1,1], [1]) == 0.5
-    >>> average_precision([0,1,0], [1]) == 0.5
-    >>> average_precision([0,0,1], [1]) == 0.3333333333333333
-    >>> average_precision([0,0,0], [1]) == 0.0
-    >>> average_precision([1,0,0], [1]) == 1.0
-    >>> average_precision([1,2,1], [1,2]) == 1.0
-    >>> average_precision([2,1,1], [1,2]) == 0.5
+    """Average Precision at k.
 
-    >>> average_precision([1,3,5], [1,3,4,6]) == 0.5
-    >>> average_precision([1,3,5], [1,3,4,6], k=1) == 1.0
-    >>> average_precision([1,3,5], [1,3,4,6], k=2) == 1.0
-    >>> average_precision([1,3,5], [1,3,4,6], k=3) == 0.6666666666666666
+    Args:
+        recommendations: A list with the identifiers of the recommended items.
+        relevant_recommendations: A list with the identifiers of the relevant recommendation items.
+        k: Optional integer denoting the truncation parameter. If defined, the recommendations list is
+            truncated after the k-th element. Default: None.
+
+    Returns:
+        The computed Average Precision value.
     """
     if k is not None: recommendations = recommendations[:k]
 
