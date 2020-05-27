@@ -1,7 +1,7 @@
 from DRecPy.Recommender import CDAE
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
-from DRecPy.Evaluation import ranking_evaluation
+from DRecPy.Evaluation.Processes import ranking_evaluation
 import time
 
 ds_train = get_train_dataset('ml-100k')
