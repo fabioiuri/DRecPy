@@ -35,7 +35,7 @@ def predictive_evaluation(model, ds_test=None, count_none_predictions=False, n_t
         'MSE': (mse, {})
     })
 
-    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}.' \
+    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}. ' \
         f'Should map metric names to a tuple containing the corresponding metric function and an extra argument dict.'
 
     for m in metrics:

@@ -74,7 +74,7 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
         'AP': (average_precision, {})
     })
 
-    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}.' \
+    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}. ' \
         f'Should map metric names to a tuple containing the corresponding metric function and an extra argument dict.'
 
     for m in metrics:
