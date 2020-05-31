@@ -65,7 +65,7 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
     assert n_test_users is None or n_test_users > 0, f'The number of test users ({n_test_users}) should be > 0.'
     assert n_pos_interactions is None or n_pos_interactions > 0,\
         f'The number of positive interactions ({n_pos_interactions}) should be None or an integer > 0.'
-    assert n_pos_interactions is None or n_neg_interactions > 0, \
+    assert n_neg_interactions is None or n_neg_interactions > 0, \
         f'The number of negative interactions ({n_neg_interactions}) should be None or an integer > 0.'
 
     if generate_negative_pairs and n_neg_interactions is None:
