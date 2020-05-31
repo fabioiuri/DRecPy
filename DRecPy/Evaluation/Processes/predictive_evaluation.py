@@ -3,7 +3,7 @@ from DRecPy.Evaluation.Metrics import mse
 from tqdm import tqdm
 
 
-def predictive_evaluation(model, ds_test, count_none_predictions=False, n_test_predictions=None, skip_errors=True, **kwds):
+def predictive_evaluation(model, ds_test=None, count_none_predictions=False, n_test_predictions=None, skip_errors=True, **kwds):
     """Executes a predictive evaluation process, where the given model will be evaluated under the provided settings.
 
     Args:
@@ -25,8 +25,8 @@ def predictive_evaluation(model, ds_test, count_none_predictions=False, n_test_p
     Returns:
         A dict containing each metric name mapping to the corresponding metric value.
     """
-    if n_test_predictions is None: n_test_predictions = len(ds_test)
     if ds_test is None: ds_test = model.interaction_dataset
+    if n_test_predictions is None: n_test_predictions = len(ds_test)
 
     assert n_test_predictions > 0, f'The number of test users ({n_test_predictions}) should be > 0.'
 
