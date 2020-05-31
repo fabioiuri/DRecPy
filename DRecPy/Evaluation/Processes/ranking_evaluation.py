@@ -197,14 +197,23 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                 user_train_pos_ds = model.interaction_dataset \
                     .select(f'user == {user}, interaction >= {interaction_threshold}')
 
+            item_blacklist = set(user_train_pos_ds.unique('item').values_list('item', to_list=True))
+            if not train_evaluation:
+                item_blacklist = item_blacklist.union(set(user_test_pos_ds.unique('item')
+                                                          .values_list('item', to_list=True)))
+            if model.n_items - len(item_blacklist) < n_neg_interactions:
+                print(f"Skipping user {user} due to not having enough negative eligible items to be sampled: user "
+                      f"positive items = {len(item_blacklist)}, user negative items = "
+                      f"{model.n_items - len(item_blacklist)}, required user negative items = {n_neg_interactions}. "
+                      f"Consider decreasing the n_neg_interactions parameter.")
+                with n_tasks_lock:
+                    n_tasks_done += 1
+                return
+
             while len(user_non_interacted_items) < n_neg_interactions:
                 new_item = rng.randint(0, model.n_items - 1)
-                if train_evaluation and user_train_pos_ds.exists(f'item == {new_item}'):
-                    continue
-                elif not train_evaluation and (user_test_pos_ds.exists(f'item == {new_item}') or
-                                               user_train_pos_ds.exists(f'item == {new_item}')):
-                    continue
-                user_non_interacted_items.append(new_item)
+                if new_item not in item_blacklist and new_item not in user_non_interacted_items:
+                    user_non_interacted_items.append(new_item)
 
     # join and shuffle all items
     all_items = user_interacted_items + user_non_interacted_items
