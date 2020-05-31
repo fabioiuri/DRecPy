@@ -63,4 +63,4 @@ class LossTracker:
         axes[-1].set_xlabel("Epoch", fontsize=12)
 
         plt.legend()
-        plt.show()
+        plt.show(block=block)

@@ -48,7 +48,9 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
         max_concurrent_threads: An optional integer representing the max concurrent threads to use. Default: 4.
         seed: An optional, integer representing the seed for the random number generator used to sample positive
             and negative interaction pairs. Default: 0.
-        verbose: A boolean indicating whether state logs should be produced or not. Default: true.
+        verbose: A boolean indicating whether state logs and a final graph should be produced or not. Default: true.
+        block: A boolean indicating whether the displayed graph block code execution or not. Note that this graph is
+            only displayed when verbose=True. Default: true.
 
     Returns:
         A dict containing each metric name mapping to the corresponding metric value.
@@ -135,7 +137,7 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
         k = sorted(k)
         for m in metrics: axes.plot(k, [results[m + f'@{k_}'] for k_ in k], '--o', label=m)
         plt.legend()
-        plt.show()
+        plt.show(block=kwds.get('block', True))
 
     return results
 
