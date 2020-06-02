@@ -25,7 +25,7 @@ Welcome to DRecPy's documentation!
    api_docs/DRecPy.Sampler
    api_docs/DRecPy.Evaluation
 
-|Documentation Status| |License: MIT|
+|GitHub Version| |Documentation Status| |License: MIT| |Travis CI|
 
 Table of Contents
 -----------------
@@ -231,7 +231,10 @@ DRecPy's `github issues
 page <https://github.com/fabioiuri/DRecPy/issues>`__ or email me
 directly to fabioiuri@live.com.
 
+.. |GitHub Version| image:: https://badge.fury.io/py/DRecPy.svg
 .. |Documentation Status| image:: https://readthedocs.org/projects/drecpy/badge/?version=latest
    :target: https://drecpy.readthedocs.io/en/latest/?badge=latest
 .. |License: MIT| image:: https://img.shields.io/badge/License-MIT-yellow.svg
    :target: https://opensource.org/licenses/MIT
+.. |Travis CI| image:: https://travis-ci.com/fabioiuri/DRecPy.svg?branch=master
+    :target: https://travis-ci.com/fabioiuri/DRecPy
