@@ -801,8 +801,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         if len(self._shared_db_table_instances[self._db_path + self._active_table]) == 1:
             # this is the only instance using the current active table on this database
             if self._state_query != '':
-                c.execute(f'DELETE FROM {self._active_table} AS R '
-                          f'WHERE R.rid NOT IN (SELECT rid FROM ({self._curr_state_source()}))')
+                c.execute(f'DELETE FROM {self._active_table} '
+                          f'WHERE rid NOT IN (SELECT rid FROM ({self._curr_state_source()}))')
         else:
             # this are more instances using the current active table on this database
             # optimize query path by creating a new compressed query node
