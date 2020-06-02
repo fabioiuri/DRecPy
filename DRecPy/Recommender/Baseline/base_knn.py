@@ -85,18 +85,17 @@ class BaseKNN(RecommenderABC, ABC):
     def _predict(self, uid, iid, **kwds):
         if uid is None or iid is None: return None
 
-        eligible_neighbours, interactions, similarities = [], [], []
+        interactions, similarities = [], []
         for similarity, neighbour in self._neighbours[uid if self.type == 'user' else iid]:
             interaction = self._get_interaction(neighbour, iid if self.type == 'user' else uid)
             if interaction is None: continue
-            eligible_neighbours.append(neighbour)
             interactions.append(interaction)
             similarities.append(similarity)
 
-        if len(eligible_neighbours) == 0 and self.use_averages:
+        if len(interactions) == 0 and self.use_averages:
             return self._predict_default(iid if self.type == 'user' else uid)
 
-        return self.aggregation_fn(eligible_neighbours, interactions, similarities)
+        return self.aggregation_fn(interactions, similarities)
 
     @abstractmethod
     def _predict_default(self, _):

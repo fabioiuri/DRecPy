@@ -78,17 +78,16 @@ class UserKNN(BaseKNN):
             neighbour_records = self.interaction_dataset.select(f'uid == {neighbour}')
             for iid, interaction in neighbour_records.values(['iid', 'interaction'], to_list=True):
                 if iid not in iids: continue
-                if iid not in tmp_iid_info: tmp_iid_info[iid] = ([], [], [])
-                tmp_iid_info[iid][0].append(neighbour)
-                tmp_iid_info[iid][1].append(interaction)
-                tmp_iid_info[iid][2].append(similarity)
+                if iid not in tmp_iid_info: tmp_iid_info[iid] = ([], [])
+                tmp_iid_info[iid][0].append(interaction)
+                tmp_iid_info[iid][1].append(similarity)
 
         pred_list = []
-        for iid, (eligible_neighbours, interactions, similarities) in tmp_iid_info.items():
-            if len(eligible_neighbours) == 0 and self.use_averages:
+        for iid, (interactions, similarities) in tmp_iid_info.items():
+            if len(interactions) == 0 and self.use_averages:
                 pred = self._predict_default(iid if self.type == 'user' else uid)
             else:
-                pred = self.aggregation_fn(eligible_neighbours, interactions, similarities)
+                pred = self.aggregation_fn(interactions, similarities)
 
             if pred is not None:
                 pred_list.append((pred, iid))

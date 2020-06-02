@@ -77,19 +77,18 @@ class ItemKNN(BaseKNN):
         user_iid_interactions = set(user_ds.values_list('iid', to_list=True))
 
         for iid in iids:
-            eligible_neighbours, interactions, similarities = [], [], []
+            interactions, similarities = [], []
             for similarity, neighbour in self._neighbours[iid]:
                 if neighbour not in user_iid_interactions: continue
                 interaction = user_ds.select_one(f'iid == {neighbour}', 'interaction', to_list=True)
                 if interaction is None: continue
-                eligible_neighbours.append(neighbour)
                 interactions.append(interaction)
                 similarities.append(similarity)
 
-            if len(eligible_neighbours) == 0 and self.use_averages:
+            if len(interactions) == 0 and self.use_averages:
                 pred = self._predict_default(uid)
             else:
-                pred = self.aggregation_fn(eligible_neighbours, interactions, similarities)
+                pred = self.aggregation_fn(interactions, similarities)
 
             if pred is not None:
                 pred_list.append((pred, iid))
