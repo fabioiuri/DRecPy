@@ -74,6 +74,9 @@ def jaccard_sim(matrix):
     """Given a matrix NxM, returns a new matrix with size NxN containing all the jaccard
     similarities between each row to every other row of the provided matrix."""
 
+    if type(matrix) is not csr_matrix:
+        matrix = csr_matrix(matrix)
+
     def matrix_jacc(matrix):
         matrix = matrix.astype(bool).astype(int)
         intersection = matrix.dot(matrix.T)
@@ -167,6 +170,9 @@ def pearson_corr(matrix):
 
 
 def msd(matrix):
+    if type(matrix) is not csr_matrix:
+        matrix = csr_matrix(matrix)
+
     max_diff = matrix.max() - matrix.min()
 
     if type(matrix) is not lil_matrix:
