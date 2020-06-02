@@ -2,55 +2,61 @@ from DRecPy.Dataset import InteractionDataset
 import pytest
 import numpy as np
 import pandas as pd
-from os import remove
+import os
 
 IN_MEMORY = True
 
-@pytest.fixture
-def mem_interactions():
-    return InteractionDataset('resources/test.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
-
 
 @pytest.fixture
-def mem_interactions_floats():
-    return InteractionDataset('resources/test_floats.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+def resources_path():
+    return os.path.join(os.path.dirname(__file__), 'resources')
 
 
 @pytest.fixture
-def mem_interactions_int_ids():
-    return InteractionDataset('resources/test_int_ids.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+def mem_interactions(resources_path):
+    return InteractionDataset(os.path.join(resources_path, 'test.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
 
 
 @pytest.fixture
-def mem_interactions_with_iids():
-    ds = InteractionDataset('resources/test.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+def mem_interactions_floats(resources_path):
+    return InteractionDataset(os.path.join(resources_path, 'test_floats.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+
+
+@pytest.fixture
+def mem_interactions_int_ids(resources_path):
+    return InteractionDataset(os.path.join(resources_path, 'test_int_ids.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+
+
+@pytest.fixture
+def mem_interactions_with_iids(resources_path):
+    ds = InteractionDataset(os.path.join(resources_path, 'test.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
     ds.assign_internal_ids()
     return ds
 
 
 @pytest.fixture
-def mem_interactions_with_mult_cols():
-    return InteractionDataset('resources/test_with_mult_cols.csv', columns=['user', 'item', 'interaction', 'timestamp', 'session', 'tags'], in_memory=IN_MEMORY, has_header=True)
+def mem_interactions_with_mult_cols(resources_path):
+    return InteractionDataset(os.path.join(resources_path, 'test_with_mult_cols.csv'), columns=['user', 'item', 'interaction', 'timestamp', 'session', 'tags'], in_memory=IN_MEMORY, has_header=True)
 
 
 @pytest.fixture()
-def mem_df():
-    return pd.read_csv('resources/test.csv')
+def mem_df(resources_path):
+    return pd.read_csv(os.path.join(resources_path, 'test.csv'))
 
 
 @pytest.fixture()
-def mem_df_floats():
-    return pd.read_csv('resources/test_floats.csv')
+def mem_df_floats(resources_path):
+    return pd.read_csv(os.path.join(resources_path, 'test_floats.csv'))
 
 
 @pytest.fixture()
-def mem_df_int_ids():
-    return pd.read_csv('resources/test_int_ids.csv')
+def mem_df_int_ids(resources_path):
+    return pd.read_csv(os.path.join(resources_path, 'test_int_ids.csv'))
 
 
 @pytest.fixture()
-def mem_df_with_columns():
-    return pd.read_csv('resources/test.csv', names=['user', 'item', 'interaction'], skiprows=1)
+def mem_df_with_columns(resources_path):
+    return pd.read_csv(os.path.join(resources_path, 'test.csv'), names=['user', 'item', 'interaction'], skiprows=1)
 
 
 def check_list_equal(l1, l2):
@@ -1586,7 +1592,7 @@ def test_save_0(mem_interactions):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_1(mem_interactions_with_iids):
@@ -1601,7 +1607,7 @@ def test_save_1(mem_interactions_with_iids):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_2(mem_interactions):
@@ -1614,7 +1620,7 @@ def test_save_2(mem_interactions):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_3(mem_interactions_with_iids):
@@ -1627,7 +1633,7 @@ def test_save_3(mem_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_4(mem_interactions_with_iids):
@@ -1640,7 +1646,7 @@ def test_save_4(mem_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_5(mem_interactions_with_iids):
@@ -1651,7 +1657,7 @@ def test_save_5(mem_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 1, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_6(mem_interactions_with_mult_cols):
@@ -1664,7 +1670,7 @@ def test_save_6(mem_interactions_with_mult_cols):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack', 'timestamp': 950.52, 'session': 5, 'tags': 'tag3'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_7(mem_interactions_with_mult_cols):
@@ -1677,7 +1683,7 @@ def test_save_7(mem_interactions_with_mult_cols):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack', 'timestamp': 950.52, 'tags': 'tag3'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_8(mem_interactions_floats):
@@ -1693,7 +1699,7 @@ def test_save_8(mem_interactions_floats):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_9(mem_interactions_int_ids):
@@ -1709,7 +1715,7 @@ def test_save_9(mem_interactions_int_ids):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 """ assign_internal_ids """

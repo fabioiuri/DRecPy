@@ -2,7 +2,7 @@ from DRecPy.Dataset import InteractionDataset
 from DRecPy.Dataset.db_dataset import DatabaseInteractionDataset
 import pytest
 import numpy as np
-from os import remove
+import os
 
 IN_MEMORY = False
 
@@ -13,40 +13,45 @@ DatabaseInteractionDataset._opt2_n_direct_interactions_threshold = 3
 
 
 @pytest.fixture
-def db_interactions():
-    DatabaseInteractionDataset._shared_db_instances = {}
-    DatabaseInteractionDataset._shared_db_table_instances = {}
-    return InteractionDataset('resources/test.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+def resources_path():
+    return os.path.join(os.path.dirname(__file__), 'resources')
 
 
 @pytest.fixture
-def db_interactions_floats():
+def db_interactions(resources_path):
     DatabaseInteractionDataset._shared_db_instances = {}
     DatabaseInteractionDataset._shared_db_table_instances = {}
-    return InteractionDataset('resources/test_floats.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+    return InteractionDataset(os.path.join(resources_path, 'test.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
 
 
 @pytest.fixture
-def db_interactions_int_ids():
+def db_interactions_floats(resources_path):
     DatabaseInteractionDataset._shared_db_instances = {}
     DatabaseInteractionDataset._shared_db_table_instances = {}
-    return InteractionDataset('resources/test_int_ids.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+    return InteractionDataset(os.path.join(resources_path, 'test_floats.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
 
 
 @pytest.fixture
-def db_interactions_with_iids():
+def db_interactions_int_ids(resources_path):
     DatabaseInteractionDataset._shared_db_instances = {}
     DatabaseInteractionDataset._shared_db_table_instances = {}
-    ds = InteractionDataset('resources/test.csv', columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+    return InteractionDataset(os.path.join(resources_path, 'test_int_ids.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
+
+
+@pytest.fixture
+def db_interactions_with_iids(resources_path):
+    DatabaseInteractionDataset._shared_db_instances = {}
+    DatabaseInteractionDataset._shared_db_table_instances = {}
+    ds = InteractionDataset(os.path.join(resources_path, 'test.csv'), columns=['user', 'item', 'interaction'], in_memory=IN_MEMORY, has_header=True)
     ds.assign_internal_ids()
     return ds
 
 
 @pytest.fixture
-def db_interactions_with_mult_cols():
+def db_interactions_with_mult_cols(resources_path):
     DatabaseInteractionDataset._shared_db_instances = {}
     DatabaseInteractionDataset._shared_db_table_instances = {}
-    return InteractionDataset('resources/test_with_mult_cols.csv', columns=['user', 'item', 'interaction', 'timestamp', 'session', 'tags'], in_memory=IN_MEMORY, has_header=True)
+    return InteractionDataset(os.path.join(resources_path, 'test_with_mult_cols.csv'), columns=['user', 'item', 'interaction', 'timestamp', 'session', 'tags'], in_memory=IN_MEMORY, has_header=True)
 
 
 def check_list_equal(l1, l2):
@@ -1491,7 +1496,7 @@ def test_save_0(db_interactions):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_1(db_interactions_with_iids):
@@ -1506,7 +1511,7 @@ def test_save_1(db_interactions_with_iids):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_2(db_interactions):
@@ -1519,7 +1524,7 @@ def test_save_2(db_interactions):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_3(db_interactions_with_iids):
@@ -1532,7 +1537,7 @@ def test_save_3(db_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_4(db_interactions_with_iids):
@@ -1545,7 +1550,7 @@ def test_save_4(db_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_5(db_interactions_with_iids):
@@ -1556,7 +1561,7 @@ def test_save_5(db_interactions_with_iids):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 1, 'user': 'jack'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_6(db_interactions_with_mult_cols):
@@ -1569,7 +1574,7 @@ def test_save_6(db_interactions_with_mult_cols):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack', 'timestamp': 950.52, 'session': 5, 'tags': 'tag3'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_7(db_interactions_with_mult_cols):
@@ -1582,7 +1587,7 @@ def test_save_7(db_interactions_with_mult_cols):
             {'item': 'xbox', 'interaction': 5.0, 'rid': 3, 'user': 'jack', 'timestamp': 950.52, 'tags': 'tag3'}
         ])
     finally:
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_8(db_interactions_floats):
@@ -1598,7 +1603,7 @@ def test_save_8(db_interactions_floats):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 def test_save_9(db_interactions_int_ids):
@@ -1614,7 +1619,7 @@ def test_save_9(db_interactions_int_ids):
         ]
     finally:
         tmp_file.close()
-        remove('testtmp.csv')
+        os.remove('testtmp.csv')
 
 
 """ assign_internal_ids """
@@ -1677,7 +1682,7 @@ def test_save_db_0(db_interactions_with_mult_cols):
         ])
     finally:
         db.close()
-        remove('testtmp.sqlite')
+        os.remove('testtmp.sqlite')
 
 
 def test_save_db_1(db_interactions_floats):
@@ -1692,7 +1697,7 @@ def test_save_db_1(db_interactions_floats):
         ])
     finally:
         db.close()
-        remove('testtmp.sqlite')
+        os.remove('testtmp.sqlite')
 
 
 def test_save_db_2(db_interactions_int_ids):
@@ -1707,7 +1712,7 @@ def test_save_db_2(db_interactions_int_ids):
         ])
     finally:
         db.close()
-        remove('testtmp.sqlite')
+        os.remove('testtmp.sqlite')
 
 
 """ type """

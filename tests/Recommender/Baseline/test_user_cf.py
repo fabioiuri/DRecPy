@@ -1,258 +1,196 @@
 from DRecPy.Recommender.Baseline import UserKNN
-
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
-
 from DRecPy.Evaluation.Metrics import rmse
-
-df_train = get_train_dataset('ml-100k')
-df_test = get_test_dataset('ml-100k')
-
-fit_model = UserKNN()
-fit_model.fit(df_train)
-fit_model_best = UserKNN(k=30, m=2)
-fit_model_best.fit(df_train)
-
-""" __init__ """
-def test_init_0():
-    """Test default fitted property."""
-    assert UserKNN().fitted is False
+import pytest
 
 
-def test_init_1():
-    """Test default mapping properties."""
-    assert UserKNN().user_mapping is None
-    assert UserKNN().user_mapping_inv is None
-    assert UserKNN().item_mapping is None
-    assert UserKNN().item_mapping_inv is None
+@pytest.fixture(scope='module')
+def train_interaction_ds():
+    return get_train_dataset('ml-100k')
 
 
-def test_init_2():
-    """Test if correct predicts_wo properties are set."""
-    assert UserKNN().predicts_wo_item is False
-    assert UserKNN().predicts_wo_user is True
+@pytest.fixture(scope='module')
+def test_interaction_ds():
+    return get_test_dataset('ml-100k')
 
 
-def test_init_3():
-    """Test if min_rating and max_rating are settable properties."""
-    assert UserKNN().min_rating is None
-    assert UserKNN().max_rating is None
-    assert UserKNN(min_rating=2).min_rating == 2
-    assert UserKNN(max_rating=3).max_rating == 3
+@pytest.fixture(scope='module')
+def fit_model(train_interaction_ds):
+    fit_model = UserKNN(k=20, m=5, sim_metric='adjusted_cosine', aggregation='weighted_mean', shrinkage=100,
+                        use_averages=False)
+    fit_model.fit(train_interaction_ds)
+    return fit_model
 
 
-def test_init_4():
-    """Test if verbose is a settable property."""
-    assert UserKNN().verbose is False
-    assert UserKNN(verbose=True).verbose is True
+@pytest.fixture(scope='module')
+def fit_model_2(train_interaction_ds):
+    fit_model_2 = UserKNN(k=1, m=1, sim_metric='adjusted_cosine', aggregation='weighted_mean', shrinkage=100,
+                          use_averages=False)
+    fit_model_2.fit(train_interaction_ds)
+    return fit_model_2
 
 
-def test_init_5():
-    """Test if the similarities property is not set before model being fitted."""
-    assert UserKNN().similarities is None
+@pytest.fixture(scope='module')
+def fit_model_use_averages(train_interaction_ds):
+    fit_model_use_averages = UserKNN(k=1, m=1, sim_metric='adjusted_cosine', aggregation='weighted_mean', shrinkage=100,
+                                     use_averages=True)
+    fit_model_use_averages.fit(train_interaction_ds)
+    return fit_model_use_averages
 
 
-def test_init_6():
-    """Test if the ratings property is not set before model being fitted."""
-    assert UserKNN().ratings is None
+@pytest.fixture(scope='module')
+def fit_model_no_shrinkage(train_interaction_ds):
+    fit_model_no_shrinkage = UserKNN(k=20, m=5, sim_metric='adjusted_cosine', aggregation='weighted_mean',
+                                     shrinkage=None, use_averages=False)
+    fit_model_no_shrinkage.fit(train_interaction_ds)
+    return fit_model_no_shrinkage
 
 
-def test_init_7():
-    """Test if the user_items property is not set before model being fitted."""
-    assert UserKNN().user_items is None
+@pytest.fixture(scope='module')
+def fit_model_cosine_sim(train_interaction_ds):
+    fit_model_cosine_sim = UserKNN(k=20, m=5, sim_metric='cosine', aggregation='weighted_mean', shrinkage=100,
+                                   use_averages=False)
+    fit_model_cosine_sim.fit(train_interaction_ds)
+    return fit_model_cosine_sim
 
 
-def test_init_8():
-    """Test if the item_users property is not set before model being fitted."""
-    assert UserKNN().item_users is None
+@pytest.fixture(scope='module')
+def fit_model_mean_aggr(train_interaction_ds):
+    fit_model_mean_aggr = UserKNN(k=20, m=5, sim_metric='adjusted_cosine', aggregation='mean', shrinkage=100,
+                                  use_averages=False)
+    fit_model_mean_aggr.fit(train_interaction_ds)
+    return fit_model_mean_aggr
 
 
-def test_init_9():
-    """Test if k and m properties are settable."""
-    assert UserKNN(k=13).k == 13
-    assert UserKNN(m=2).m == 2
+def test_predict_0(fit_model):
+    assert round(fit_model.predict(1, 2), 4) == 3.065
 
 
-def test_init_10():
-    """Test supported similarity metrics and if error is thrown."""
-    assert UserKNN(sim_metric='adjusted_cosine').sim_metric == 'adjusted_cosine'
-    assert UserKNN(sim_metric='cosine').sim_metric == 'cosine'
-    try:
-        UserKNN(sim_metric='')
-    except Exception as e:
-        assert str(e) == 'There is no similarity metric corresponding to the name "".'
+def test_predict_1(fit_model_2):
+    assert fit_model_2.predict(1, 2, skip_errors=True) is None
 
 
-""" fit """
-def test_fit_0():
-    """Test if properties are set after fit."""
-    assert fit_model.fitted is True
-    # min, max ratings
-    assert fit_model.min_rating == 1
-    assert fit_model.max_rating == 5
-    # raw - internal mappings
-    assert fit_model.user_mapping is not None
-    assert fit_model.user_mapping_inv is not None
-    assert fit_model.item_mapping is not None
-    assert fit_model.item_mapping_inv is not None
+def test_predict_2(fit_model_use_averages):
+    assert round(fit_model_use_averages.predict(1, 2), 4) == 3.1983
 
 
-def test_fit_1():
-    """Test if ratings, user_items and similarities properties are set after fit."""
-    assert fit_model.ratings is not None
-    assert fit_model.user_items is not None
-    assert fit_model.item_users is not None
-    assert fit_model.similarities is not None
+def test_predict_3(fit_model_no_shrinkage):
+    assert round(fit_model_no_shrinkage.predict(1, 2), 4) == 3.1258
 
 
-""" predict """
-def test_predict_0():
-    """Test if error is thrown when trying to get predictions before fitting the model."""
-    try:
-        UserKNN().predict(0, 0)
-    except Exception as e:
-        assert str(e) == 'The model requires to be fitted before being able to make predictions.'
+def test_predict_4(fit_model_cosine_sim):
+    assert round(fit_model_cosine_sim.predict(1, 2), 4) == 3.3017
 
 
-def test_predict_1():
-    """Test if model is able to predict without a valid user."""
-    assert round(fit_model.predict(None, '1'), 4) == 3.8597
+def test_predict_5(fit_model_mean_aggr):
+    assert round(fit_model_mean_aggr.predict(1, 2), 4) == 3.0714
 
 
-def test_predict_2():
-    """Test if error is thrown when an invalid item is given."""
-    try:
-        fit_model.predict(1, None)
-    except Exception as e:
-        assert str(e) == 'Item None was not found and the model requires doesn\'t support those predictions.'
+def test_predict_6(fit_model, test_interaction_ds):
+    predictions = [fit_model.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
 
 
-def test_predict_3():
-    """Test if no error is thrown when the skip_errors parameter is set to True."""
-    assert fit_model.predict(1, None, skip_errors=True) == 3
+def test_predict_7(fit_model_2, test_interaction_ds):
+    predictions = [fit_model_2.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 2.7477
 
 
-def test_predict_4():
-    """Test if prediction value is correct."""
-    assert round(fit_model.predict(1, 2), 4) == 3.044
+def test_predict_8(fit_model_use_averages, test_interaction_ds):
+    predictions = [fit_model_use_averages.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1155
 
 
-def test_predict_5():
-    """Test rmse on predicting ratings on the ml-100k test set."""
-    predictions = [fit_model.predict(u, i, skip_errors=True) for u, i, _, _ in df_test.values]
-    assert round(rmse(df_test['rating'], predictions), 4) == 1.0235
+def test_predict_9(fit_model_no_shrinkage, test_interaction_ds):
+    predictions = [fit_model_no_shrinkage.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.2235
 
 
-def test_predict_6():
-    """Test rmse on predicting ratings on the ml-100k test set, with modified model."""
-    predictions = [fit_model_best.predict(u, i, skip_errors=True) for u, i, _, _ in df_test.values]
-    assert round(rmse(df_test['rating'], predictions), 4) == 1.022
+def test_predict_10(fit_model_cosine_sim, test_interaction_ds):
+    predictions = [fit_model_cosine_sim.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.0628
 
 
-""" recommend """
-def test_recommend_0():
-    """Test if error is thrown when trying to get recommendations before fitting the model."""
-    model = UserKNN()
-    try:
-        model.recommend(0, 5)
-    except Exception as e:
-        assert str(e) == 'The model requires to be fitted before being able to make predictions.'
+def test_predict_11(fit_model_mean_aggr, test_interaction_ds):
+    predictions = [fit_model_mean_aggr.predict(u, i, skip_errors=True)
+                   for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
+    predictions = [p if p is not None else 0 for p in predictions]
+    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1599
 
 
-def test_recommend_1():
-    """Test if error is thrown when trying to get recommendations for invalid users."""
-    try:
-        fit_model.recommend(-1, 5)
-    except Exception as e:
-        assert str(e) == 'User -1 was not found.'
-
-
-def test_recommend_2():
-    """Test if recommendations are correct."""
+def test_recommend_0(fit_model):
     assert [(round(r, 4), item) for r, item in fit_model.recommend(1, 5)] == \
-           [(5.0, '1656'), (5.0, '1599'), (5.0, '1536'), (5.0, '1500'), (5.0, '1467')]
+           [(5.0, 1514), (5.0, 1467), (5.0, 1168), (5.0, 1143), (5.0, 1114)]
 
 
-def test_recommend_3():
-    """Test if the threshold property filters out 'weak' recommendations."""
-    assert [(round(r, 4), item) for r, item in fit_model.recommend(1, 5, threshold=5.1)] == []
+def test_recommend_1(fit_model_2):
+    assert [(round(r, 4), item) for r, item in fit_model_2.recommend(1, 5)] == \
+           [(5.0, 1019), (5.0, 853), (5.0, 653), (5.0, 603), (5.0, 508)]
 
 
-def test_recommend_4():
-    """Test if different recommendations are provided with a modified model."""
-    assert [(round(r, 4), item) for r, item in fit_model_best.recommend(1, 5)] == \
-           [(5.0, '1656'), (5.0, '1599'), (5.0, '1536'), (5.0, '1500'), (5.0, '1467')]
+def test_recommend_2(fit_model_use_averages):
+    assert [(round(r, 4), item) for r, item in fit_model_use_averages.recommend(1, 5)] == \
+           [(5.0, 1019), (5.0, 853), (5.0, 653), (5.0, 603), (5.0, 508)]
 
 
-def test_recommend_5():
-    """Test if more recommendations are given, by increasing the second parameter."""
-    assert [(round(r, 4), item) for r, item in fit_model_best.recommend(15, 20)] == \
-           [(5.0, '1656'), (5.0, '1599'), (5.0, '1536'), (5.0, '1500'), (5.0, '1467'),
-            (5.0, '1293'), (5.0, '1201'), (5.0, '1189'), (5.0, '1122'), (5.0, '814'),
-            (4.7143, '1449'), (4.6372, '64'), (4.6252, '408'), (4.5814, '169'), (4.5739, '98'),
-            (4.557, '114'), (4.5434, '12'), (4.5392, '318'), (4.5, '1642'), (4.5, '1594')]
+def test_recommend_3(fit_model_no_shrinkage):
+    assert [(round(r, 4), item) for r, item in fit_model_no_shrinkage.recommend(1, 5)] == \
+           [(5.0, 963), (5.0, 1529), (5.0, 1514), (5.0, 1467), (5.0, 1367)]
 
 
-def test_recommend_6():
-    """Test if non-novel recommendations are given, by setting the novelty parameter to False."""
-    assert [(round(r, 4), item) for r, item in fit_model_best.recommend(15, 20, novelty=False)] == \
-           [(5.0, '1656'), (5.0, '1599'), (5.0, '1536'), (5.0, '1500'), (5.0, '1467'),
-            (5.0, '1293'), (5.0, '1201'), (5.0, '1189'), (5.0, '1122'), (5.0, '814'),
-            (4.7143, '1449'), (4.6753, '50'), (4.6372, '64'), (4.6252, '408'), (4.5814, '169'),
-            (4.5739, '98'), (4.557, '114'), (4.5434, '12'), (4.5392, '318'), (4.5, '1642')]
+def test_recommend_4(fit_model_cosine_sim):
+    assert [(round(r, 4), item) for r, item in fit_model_cosine_sim.recommend(1, 5)] == \
+           [(5.0, 1589), (5.0, 1169), (5.0, 1168), (5.0, 1143), (5.0, 1114)]
 
 
-""" rank """
-def test_rank_0():
-    """Test if error is thrown when trying to get rankings before fitting the model."""
-    model = UserKNN()
-    try:
-        model.rank(1, ['1065', '1104', '1149', '1242', '1487'])
-    except Exception as e:
-        assert str(e) == 'The model requires to be fitted before being able to make predictions.'
+def test_recommend_5(fit_model_mean_aggr):
+    assert [(round(r, 4), item) for r, item in fit_model_mean_aggr.recommend(1, 5)] == \
+           [(5.0, 1514), (5.0, 1467), (5.0, 1168), (5.0, 1143), (5.0, 1114)]
 
 
-def test_rank_1():
-    """Test if error is thrown when trying to get rankings for an invalid user."""
-    try:
-        fit_model.rank(-1, ['1065', '1104', '1149', '1242', '1487'])
-    except Exception as e:
-        assert str(e) == 'User -1 was not found.'
+def test_rank_0(fit_model, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(4.3271, 61), (3.5431, 117), (3.2585, 33), (2.6752, 20), (2.5501, 155)]
 
 
-def test_rank_2():
-    """Test if the resulting ranking is correct."""
-    ranked_list = [(round(r, 4), i) for r, i in fit_model.rank(1, ['1065', '1104', '1149', '1242', '1487'])]
-    assert ranked_list == [(3.8348, '1149'), (3.6955, '1065'), (2.75, '1242'), (2.3333, '1104'), (2.0, '1487')]
+def test_rank_1(fit_model_2, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model_2.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(4.0, 33), (4.0, 117)]
 
 
-def test_rank_3():
-    """Test if the n parameter is being taken into account."""
-    ranked_list = [(round(r, 4), i) for r, i in fit_model.rank(1, ['1065', '1104', '1149', '1242', '1487'], n=2)]
-    assert ranked_list == [(3.8348, '1149'), (3.6955, '1065')]
+def test_rank_2(fit_model_use_averages, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model_use_averages.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(4.0, 33), (4.0, 117)]
 
 
-def test_rank_4():
-    """Test if only novel ranked items are returned."""
-    ranked_list = [(round(r, 4), i) for r, i in fit_model_best.rank(15, ['170', '754', '864', '199', '1149'])]
-    assert ranked_list == [(4.4124, '199'), (4.3668, '170'), (3.8261, '1149')]
+def test_rank_3(fit_model_no_shrinkage, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model_no_shrinkage.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(4.419, 61), (3.6, 117), (3.2214, 33), (2.9947, 20), (2.3877, 155)]
 
 
-def test_rank_5():
-    """Test if novel and non-novel ranked items are returned, when the novelty parameter is set to False."""
-    ranked_list = [(round(r, 4), i) for r, i in fit_model_best.rank(15, ['170', '754', '864', '199', '1149'], novelty=False)]
-    assert ranked_list == [(4.4124, '199'), (4.3668, '170'), (3.8261, '1149'), (3.3953, '754'), (3.2014, '864')]
+def test_rank_4(fit_model_cosine_sim, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model_cosine_sim.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(3.8092, 61), (3.5277, 117), (3.1474, 33), (3.0005, 20), (2.7127, 155)]
 
 
-def test_rank_6():
-    """Test if invalid items are skipped and ranking for valid items is still returned."""
-    ranked_list = [(round(r, 4), i) for r, i in fit_model.rank(15, ['170', '754', 'AA', '199', '-1'])]
-    assert ranked_list == [(4.489, '199'), (4.3544, '170')]
-
-
-def test_rank_7():
-    """Test if error is thrown if the skip_invalid_items parameter is set to False."""
-    try:
-        fit_model.rank(15, ['170', '754', 'AA', '199', '-1'], skip_invalid_items=False)
-    except Exception as e:
-        assert str(e) == 'Item AA was not found.'
+def test_rank_5(fit_model_mean_aggr, test_interaction_ds):
+    ranked_list = [(round(r, 4), i) for r, i
+                   in fit_model_mean_aggr.rank(1, test_interaction_ds.values_list('item', to_list=True)[:5])]
+    assert ranked_list == [(4.3333, 61), (3.5, 117), (3.2308, 33), (2.6667, 20), (2.5455, 155)]
