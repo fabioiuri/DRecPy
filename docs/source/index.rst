@@ -27,6 +27,18 @@ Welcome to DRecPy's documentation!
 
 |Documentation Status| |License: MIT|
 
+Table of Contents
+-----------------
+
+1. `Introduction <#introduction>`__
+2. `Installation <#installation>`__
+3. `Getting Started <#getting-started>`__
+4. `Implemented Models <#implemented-models>`__
+5. `Benchmarks <#benchmarks>`__
+6. `License <#license>`__
+7. `Contributors <#contributors>`__
+8. `Development Status <#development-status>`__
+
 Introduction
 ------------
 

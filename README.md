@@ -2,6 +2,20 @@
 [![Documentation Status](https://readthedocs.org/projects/drecpy/badge/?version=latest)](https://drecpy.readthedocs.io/en/latest/?badge=latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+# DRecPy
+
+Table of Contents
+-----------------
+
+1. [Introduction](#introduction)
+2. [Installation](#installation)
+3. [Getting Started](#getting-started)
+4. [Implemented Models](#implemented-models)
+5. [Benchmarks](#benchmarks)
+6. [License](#license)
+7. [Contributors](#contributors)
+8. [Development Status](#development-status)
+
 Introduction
 ------------
 
@@ -43,7 +57,13 @@ Or directly by cloning the Git repo:
     $ git clone https://github.com/fabioiuri/DRecPy
     $ cd DRecPy
     $ python setup.py install
+    
+#### Update Version
 
+If you want to update to the newest DRecPy version, use:
+
+    $ pip install drecpy --upgrade
+ 
 
 Getting Started
 ---------------
