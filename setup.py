@@ -19,7 +19,7 @@ with open("requirements.txt", "r") as fh:
 
 setup(
     name="DRecPy",
-    version="0.0.2",
+    version="0.0.3",
     author="Fabio Colaço",
     author_email="fabioiuri@live.com",
     description="Description Deep Recommenders with Python: "
