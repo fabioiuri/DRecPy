@@ -83,7 +83,7 @@ def test_get_full_dataset_6():
     assert (len(ret), len(ret.columns)) == (1000209, 5)
     assert next(ret.values()) == {'interaction': 5, 'user': 1, 'item': 1193, 'rid': 0, 'timestamp': 978300760}
 
-
+"""
 def test_get_full_dataset_7():
     try:
         shutil.rmtree(os.path.join(os.path.expanduser('~') + '/.DRecPy_data/', 'ml-10m'))
@@ -107,7 +107,7 @@ def test_get_full_dataset_8():
     assert open(os.path.expanduser('~') + '/.DRecPy_data/ml-20m/ratings.csv', 'r') is not None
     assert (len(ret), len(ret.columns)) == (20000263, 5)
     assert next(ret.values()) == {'interaction': 3.5, 'user': 1, 'item': 2, 'rid': 0, 'timestamp': 1112486027}
-
+"""
 
 def test_get_test_dataset_0():
     try:
@@ -137,28 +137,14 @@ def test_get_test_dataset_4():
     ret = get_test_dataset('bx')
     assert (len(ret), len(ret.columns)) == (120530, 4)
     assert next(ret.values(columns=['interaction', 'item', 'user'])) == \
-           {'interaction': 0, 'item': '034544003X', 'user': 276762}
+           {'interaction': 5, 'item': '0380711524', 'user': 276762}
 
 
 def test_get_test_dataset_5():
     ret = get_test_dataset('ml-1m')
     assert (len(ret), len(ret.columns)) == (60400, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'interaction': 5, 'item': 1193, 'user': 1, 'timestamp': 978300760}
-
-
-def test_get_test_dataset_6():
-    ret = get_test_dataset('ml-10m')
-    assert (len(ret), len(ret.columns)) == (698780, 5)
-    assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1, 'item': 316, 'interaction': 5.0, 'timestamp': 838983392}
-
-
-def test_get_test_dataset_7():
-    ret = get_test_dataset('ml-20m')
-    assert (len(ret), len(ret.columns)) == (1384930, 5)
-    assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1, 'item': 47, 'interaction': 3.5, 'timestamp': 1112484727}
+           {'interaction': 4, 'item': 938, 'timestamp': 978301752, 'user': 1}
 
 
 def test_get_train_dataset_0():
@@ -189,16 +175,16 @@ def test_get_train_dataset_4():
     ret = get_train_dataset('bx')
     assert (len(ret), len(ret.columns)) == (845183, 4)
     assert next(ret.values(columns=['interaction', 'item', 'user'])) == \
-           {'user': 276762, 'item': '0380711524', 'interaction': 5}
+           {'user': 276762, 'item': '034544003X', 'interaction': 0}
 
 
 def test_get_train_dataset_5():
     ret = get_train_dataset('ml-1m')
     assert (len(ret), len(ret.columns)) == (939809, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
-           {'user': 1, 'item': 661, 'interaction': 3, 'timestamp': 978302109}
+           {'user': 1, 'item': 1193, 'interaction': 5, 'timestamp': 978300760}
 
-
+"""
 def test_get_train_dataset_6():
     ret = get_train_dataset('ml-10m')
     assert (len(ret), len(ret.columns)) == (9301274, 5)
@@ -211,3 +197,4 @@ def test_get_train_dataset_7():
     assert (len(ret), len(ret.columns)) == (18615333, 5)
     assert next(ret.values(columns=['interaction', 'item', 'user', 'timestamp'])) == \
            {'user': 1, 'item': 2, 'interaction': 3.5, 'timestamp': 1112486027}
+"""
