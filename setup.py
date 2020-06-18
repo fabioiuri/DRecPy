@@ -22,7 +22,7 @@ setup(
     version="0.0.3",
     author="Fabio Colaço",
     author_email="fabioiuri@live.com",
-    description="Description Deep Recommenders with Python: "
+    description="Deep Recommenders with Python: "
                 "A Python framework for building Deep Learning based Recommender Systems",
     long_description=long_description,
     long_description_content_type="text/markdown",
