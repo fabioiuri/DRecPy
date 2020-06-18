@@ -42,7 +42,7 @@ class RecommenderABC(ABC):
         self.n_users = 0
         self.n_items = 0
         self.n_rows = 0
-        self.interaction_threshold = kwds.get('interaction_threshold', 0)
+        self.interaction_threshold = kwds.get('interaction_threshold', 1e-3)
         self.interaction_dataset = None
 
         self._loss_tracker = None
