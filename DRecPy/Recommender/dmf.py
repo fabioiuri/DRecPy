@@ -43,20 +43,19 @@ class DMF(RecommenderABC):
         self.l2_norm_vectors = l2_norm_vectors
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
-        self._user_nn = tf.keras.Sequential()
-        self._user_nn.add(tf.keras.layers.Dense(self.user_factors[0], activation=tf.nn.relu,
-                                                input_shape=(self.n_items,), autocast=False))
+        self.user_nn = tf.keras.Sequential()
+        self.user_nn.add(tf.keras.layers.Dense(self.user_factors[0], activation=tf.nn.relu,
+                                               input_shape=(self.n_items,), autocast=False))
         for user_factor in self.user_factors[1:]:
-            self._user_nn.add(tf.keras.layers.Dense(user_factor, activation=tf.nn.relu))
+            self.user_nn.add(tf.keras.layers.Dense(user_factor, activation=tf.nn.relu))
 
-        self._item_nn = tf.keras.Sequential()
-        self._item_nn.add(tf.keras.layers.Dense(self.item_factors[0], activation=tf.nn.relu,
-                                                input_shape=(self.n_users,), autocast=False))
+        self.item_nn = tf.keras.Sequential()
+        self.item_nn.add(tf.keras.layers.Dense(self.item_factors[0], activation=tf.nn.relu,
+                                               input_shape=(self.n_users,), autocast=False))
         for item_factor in self.item_factors[1:]:
-            self._item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu))
+            self.item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu))
 
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
-
+        self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
     def _do_batch(self, **kwds):
@@ -74,28 +73,26 @@ class DMF(RecommenderABC):
             item_tensor = tf.nn.l2_normalize(item_tensor)
 
         with tf.GradientTape() as tape:
-            user_rep = self._user_nn(user_tensor)
-            item_rep = self._item_nn(item_tensor)
+            user_rep = self.user_nn(user_tensor)
+            item_rep = self.item_nn(item_tensor)
 
             norm_user_rep = tf.nn.l2_normalize(user_rep)
             norm_item_rep = tf.nn.l2_normalize(item_rep)
 
-            pred = tf.reduce_sum(tf.multiply(norm_user_rep, norm_item_rep))
-            pred = tf.maximum(1e-6, pred)
+            pred = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_rep, norm_item_rep)))
 
-            des = self._standardize_value(desired_value)
-            loss = self._compute_loss(pred, des)
-        user_grads, item_grads = tape.gradient(loss, [self._user_nn.trainable_variables,
-                                                      self._item_nn.trainable_variables])
+            if self.use_nce:
+                desired_value = self._standardize_value(desired_value)
+            loss = self._loss(pred, desired_value)
 
-        self.optimizer.apply_gradients(zip(user_grads, self._user_nn.trainable_variables))
-        self.optimizer.apply_gradients(zip(item_grads, self._item_nn.trainable_variables))
+        user_grads, item_grads = tape.gradient(loss, [self.user_nn.trainable_variables,
+                                                      self.item_nn.trainable_variables])
+        self._optimizer.apply_gradients(zip(user_grads, self.user_nn.trainable_variables))
+        self._optimizer.apply_gradients(zip(item_grads, self.item_nn.trainable_variables))
 
         return loss
 
-    def _compute_loss(self, pred, des):
-        if self.use_nce:
-            return -(des / self.max_interaction * tf.math.log(pred) + (1 - des / self.max_interaction) * tf.math.log(1 - pred))
+    def _loss(self, pred, des):
         return -(des * tf.math.log(pred) + (1 - des) * tf.math.log(1 - pred))
 
     def _predict(self, uid, iid, **kwds):
@@ -109,8 +106,8 @@ class DMF(RecommenderABC):
             user_tensor = tf.nn.l2_normalize(user_tensor)
             item_tensor = tf.nn.l2_normalize(item_tensor)
 
-        user_rep = self._user_nn(user_tensor)
-        item_rep = self._item_nn(item_tensor)
+        user_rep = self.user_nn(user_tensor)
+        item_rep = self.item_nn(item_tensor)
 
         norm_user_rep = tf.nn.l2_normalize(user_rep)
         norm_item_rep = tf.nn.l2_normalize(item_rep)
