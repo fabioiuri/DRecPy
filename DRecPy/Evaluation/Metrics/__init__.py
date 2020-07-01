@@ -20,6 +20,5 @@ __all__ = [
     'recall',
     'precision',
     'f_score',
-    'average_precision',
-    'mean_average_precision'
+    'average_precision'
 ]
