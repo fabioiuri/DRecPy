@@ -48,20 +48,15 @@ class PointSampler:
             n: An integer representing the number of interaction pairs to be sampled. Default: 16.
 
         Returns:
-            A list with n tuple entries, each representing either a negative or positive interaction pair.
-            The first element on each tuple represents the sampled uid (user) and the second the sampled iid (item).
+            A list with n triple entries, each representing either a negative or positive interaction pair.
+            The first element on each triple represents the sampled uid (user), the second the sampled iid (item), and
+                the third the interaction value.
         """
         sampled_pairs = []
 
         while len(sampled_pairs) != n:
             null_pair = self.rng.uniform(0, self.neg_ratio + 1) > 1
-
-            if null_pair:
-                sampled_uid, sampled_iid = self.sample_negative()
-            else:
-                sampled_uid, sampled_iid = self.sample_positive()
-
-            sampled_pairs.append((sampled_uid, sampled_iid))
+            sampled_pairs.append(self.sample_negative() if null_pair else self.sample_positive())
 
         return sampled_pairs
 
@@ -70,8 +65,9 @@ class PointSampler:
         instance.
 
         Returns:
-            A tuple representing either a negative or positive interaction pair.
-            The first element on each tuple represents the sampled uid (user) and the second the sampled iid (item).
+            A triple representing either a negative or positive interaction pair.
+            The first element on each triple represents the sampled uid (user), the second the sampled iid (item), and
+                the third the interaction value.
         """
         return self.sample(n=1)[0]
 
@@ -79,21 +75,22 @@ class PointSampler:
         """Sample one negative interaction pair.
 
         Returns:
-            A tuple representing a negative interaction pair.
-            The first element on each tuple represents the sampled uid (user) and the second the sampled iid (item).
+            A triple representing a negative interaction pair.
+            The first element on each triple represents the sampled uid (user), the second the sampled iid (item), and
+                the third the interaction value (which will always be 0).
         """
-        sampled_uid, sampled_iid = next(self.null_pair_gen, (None, None))
-        return sampled_uid, sampled_iid
+        sampled_uid, sampled_iid = next(self.null_pair_gen, (None, None, None))
+        return sampled_uid, sampled_iid, 0
 
     def sample_positive(self):
         """Sample one positive interaction pair.
 
         Returns:
-            A tuple representing a positive interaction pair.
-            The first element on each tuple represents the sampled uid (user) and the second the sampled iid (item).
+            A triple representing a positive interaction pair.
+            The first element on each triple represents the sampled uid (user), the second the sampled iid (item), and
+                the third the interaction value.
         """
         sampled_interaction = next(self.pos_pair_gen, None)
         if sampled_interaction is None:
-            return None, None
-        sampled_uid, sampled_iid = sampled_interaction['uid'], sampled_interaction['iid']
-        return sampled_uid, sampled_iid
+            return None, None, None
+        return sampled_interaction['uid'], sampled_interaction['iid'], sampled_interaction['interaction']
