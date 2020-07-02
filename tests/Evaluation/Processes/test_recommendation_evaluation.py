@@ -30,43 +30,43 @@ def model(interactions_ds):
 def test_recommendation_evaluation_0(model, interactions_ds):
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=None,
                                      novelty=False) == \
-           {'AP@2': 0.01, 'HR@2': 0.01, 'NDCG@2': 0.0189, 'P@2': 0.02, 'R@2': 0.01, 'RR@2': 0.0}
+           {'AP@2': 0.01, 'HR@2': 0.0167, 'NDCG@2': 0.0189, 'P@2': 0.02, 'R@2': 0.0167, 'RR@2': 0.01}
 
 
 def test_recommendation_evaluation_1(model, interactions_ds):
     """Evaluation with k parameter set to a list."""
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=[1, 5, 10],
                                      n_pos_interactions=None, novelty=False, verbose=False) == \
-           {'AP@1': 0.0, 'AP@10': 0.0126, 'AP@5': 0.009, 'HR@1': 0.0, 'HR@10': 0.0457, 'HR@5': 0.0247,
-            'NDCG@1': -0.0003, 'NDCG@10': 0.0329, 'NDCG@5': 0.0223, 'P@1': 0.0, 'P@10': 0.02, 'P@5': 0.02, 'R@1': 0.0,
-            'R@10': 0.0457, 'R@5': 0.0247, 'RR@1': 0.0, 'RR@10': 0.0075, 'RR@5': 0.005}
+           {'AP@1': 0.0, 'AP@10': 0.0149, 'AP@5': 0.0116, 'HR@1': 0.0, 'HR@10': 0.0507, 'HR@5': 0.0283,
+            'NDCG@1': -0.0003, 'NDCG@10': 0.0329, 'NDCG@5': 0.0223, 'P@1': 0.0, 'P@10': 0.016, 'P@5': 0.016,
+            'R@1': 0.0, 'R@10': 0.0507, 'R@5': 0.0283, 'RR@1': 0.0, 'RR@10': 0.0165, 'RR@5': 0.014}
 
 
 def test_recommendation_evaluation_2(model, interactions_ds):
     """Evaluation with novelty=True."""
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=None,
                                      novelty=True) == \
-           {'AP@2': 0.025, 'HR@2': 0.0207, 'NDCG@2': 0.0263, 'P@2': 0.04, 'R@2': 0.0207, 'RR@2': 0.01}
+           {'AP@2': 0.02, 'HR@2': 0.0233, 'NDCG@2': 0.0263, 'P@2': 0.03, 'R@2': 0.0233, 'RR@2': 0.01}
 
 
 def test_recommendation_evaluation_3(model, interactions_ds):
     """Evaluation with limited number of positive interactions."""
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=1,
                                      novelty=False) == \
-           {'AP@2': 0.01, 'HR@2': 0.02, 'NDCG@2': 0.0308, 'P@2': 0.01, 'R@2': 0.02, 'RR@2': 0.01}
+           {'AP@2': 0.01, 'HR@2': 0.02, 'NDCG@2': 0.0179, 'P@2': 0.01, 'R@2': 0.02, 'RR@2': 0.01}
 
 
 def test_recommendation_evaluation_4(model, interactions_ds):
     """Evaluation with limited number of test users."""
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=None,
-                                     novelty=False, n_test_users=10) \
-           == {'AP@2': 0.025, 'HR@2': 0.025, 'NDCG@2': 0.0585, 'P@2': 0.05, 'R@2': 0.025, 'RR@2': 0.0}
+                                     novelty=False, n_test_users=10) == \
+           {'AP@2': 0.025, 'HR@2': 0.0333, 'NDCG@2': 0.0585, 'P@2': 0.05, 'R@2': 0.0333, 'RR@2': 0.0}
 
 
 def test_recommendation_evaluation_5(model):
     """Train evaluation."""
     assert recommendation_evaluation(model, cn_test_users=None, k=2, n_pos_interactions=None, novelty=False) == \
-           {'AP@2': 0.23, 'HR@2': 0.0164, 'NDCG@2': 0.0952, 'P@2': 0.25, 'R@2': 0.0164, 'RR@2': 0.02}
+           {'AP@2': 0.21, 'HR@2': 0.0176, 'NDCG@2': 0.0952, 'P@2': 0.23, 'R@2': 0.0176, 'RR@2': 0.03}
 
 
 def test_recommendation_evaluation_6(model):
@@ -86,7 +86,7 @@ def test_recommendation_evaluation_8(model, interactions_ds):
     """Evaluation with custom metrics."""
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=None,
                                      novelty=False, metrics={'NDCG': (ndcg, {}), 'HR': (hit_ratio, {})}) == \
-           {'HR@2': 0.01, 'NDCG@2': 0.0189}
+           {'HR@2': 0.0167, 'NDCG@2': 0.0189}
 
 
 def test_recommendation_evaluation_9(model, interactions_ds):
@@ -94,7 +94,7 @@ def test_recommendation_evaluation_9(model, interactions_ds):
     assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=[2, 3], n_pos_interactions=None,
                                      novelty=False, metrics={'NDCG': (ndcg, {}), 'HR': (hit_ratio, {})},
                                      verbose=False) == \
-           {'HR@2': 0.01, 'HR@3': 0.0167, 'NDCG@2': 0.0189, 'NDCG@3': 0.022}
+           {'HR@2': 0.0167, 'HR@3': 0.0233, 'NDCG@2': 0.0189, 'NDCG@3': 0.022}
 
 
 def test_recommendation_evaluation_10(model, interactions_ds):

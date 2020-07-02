@@ -31,67 +31,67 @@ def test_ranking_evaluation_0(model, interactions_ds):
     """Evaluation without generating negative pairs."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False) == \
-           {'AP@2': 0.67, 'HR@2': 0.328, 'NDCG@2': 0.4093, 'P@2': 0.8617, 'R@2': 0.328, 'RR@2': 0.26}
+           {'AP@2': 0.53, 'HR@2': 0.3137, 'NDCG@2': 0.4093, 'P@2': 0.7021, 'R@2': 0.3137, 'RR@2': 0.28}
 
 
 def test_ranking_evaluation_1(model, interactions_ds):
     """Evaluation with generated negative pairs."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=20, generate_negative_pairs=True, novelty=False) == \
-           {'AP@2': 0.14, 'HR@2': 0.085, 'NDCG@2': 0.1265, 'P@2': 0.18, 'R@2': 0.085, 'RR@2': 0.06}
+           {'AP@2': 0.125, 'HR@2': 0.0943, 'NDCG@2': 0.1249, 'P@2': 0.16, 'R@2': 0.0943, 'RR@2': 0.06}
 
 
 def test_ranking_evaluation_2(model, interactions_ds):
     """Evaluation with limited negative pairs."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=1, generate_negative_pairs=False, novelty=False) == \
-           {'AP@2': 0.675, 'HR@2': 0.328, 'NDCG@2': 0.416, 'P@2': 0.9022, 'R@2': 0.328, 'RR@2': 0.26}
+           {'AP@2': 0.565, 'HR@2': 0.3337, 'NDCG@2': 0.4341, 'P@2': 0.8111, 'R@2': 0.3337, 'RR@2': 0.28}
 
 
 def test_ranking_evaluation_3(model, interactions_ds):
     """Evaluation with k parameter set to a list."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=[1, 5, 10], n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False, verbose=False) == \
-           {'AP@1': 0.8, 'AP@10': 0.3898, 'AP@5': 0.3898, 'HR@1': 0.183, 'HR@10': 0.4137, 'HR@5': 0.4137,
-            'NDCG@1': 0.3968, 'NDCG@10': 0.4189, 'NDCG@5': 0.4189, 'P@1': 0.8511, 'P@10': 0.8539, 'P@5': 0.8539,
-            'R@1': 0.183, 'R@10': 0.4137, 'R@5': 0.4137, 'RR@1': 0.18, 'RR@10': 0.2773, 'RR@5': 0.2773}
+           {'AP@1': 0.7, 'AP@10': 0.3668, 'AP@5': 0.3668, 'HR@1': 0.1953, 'HR@10': 0.4107, 'HR@5': 0.4107,
+            'NDCG@1': 0.3968, 'NDCG@10': 0.4189, 'NDCG@5': 0.4189, 'P@1': 0.7447, 'P@10': 0.7089, 'P@5': 0.7089,
+            'R@1': 0.1953, 'R@10': 0.4107, 'R@5': 0.4107, 'RR@1': 0.24, 'RR@10': 0.305, 'RR@5': 0.305}
 
 
 def test_ranking_evaluation_4(model, interactions_ds):
     """Evaluation with k parameter set to a list and generated negative pairs."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=[1, 2, 3], n_pos_interactions=None,
                               n_neg_interactions=20, generate_negative_pairs=True, novelty=False, verbose=False) == \
-           {'AP@1': 0.16, 'AP@2': 0.14, 'AP@3': 0.1133, 'HR@1': 0.0357, 'HR@2': 0.085, 'HR@3': 0.1197,
-            'NDCG@1': 0.0979, 'NDCG@2': 0.1265, 'NDCG@3': 0.1258, 'P@1': 0.16, 'P@2': 0.18, 'P@3': 0.1667,
-            'R@1': 0.0357, 'R@2': 0.085, 'R@3': 0.1197, 'RR@1': 0.04, 'RR@2': 0.06, 'RR@3': 0.0733}
+           {'AP@1': 0.14, 'AP@2': 0.125, 'AP@3': 0.0978, 'HR@1': 0.0397, 'HR@2': 0.0943, 'HR@3': 0.1233,
+            'NDCG@1': 0.0965, 'NDCG@2': 0.1249, 'NDCG@3': 0.1303, 'P@1': 0.14, 'P@2': 0.16, 'P@3': 0.14,
+            'R@1': 0.0397, 'R@2': 0.0943, 'R@3': 0.1233, 'RR@1': 0.02, 'RR@2': 0.06, 'RR@3': 0.0667}
 
 
 def test_ranking_evaluation_5(model, interactions_ds):
     """Evaluation with novelty=True."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=True) == \
-           {'AP@2': 0.67, 'HR@2': 0.328, 'NDCG@2': 0.4093, 'P@2': 0.8617, 'R@2': 0.328, 'RR@2': 0.26}
+           {'AP@2': 0.53, 'HR@2': 0.3137, 'NDCG@2': 0.4093, 'P@2': 0.7021, 'R@2': 0.3137, 'RR@2': 0.28}
 
 
 def test_ranking_evaluation_6(model, interactions_ds):
     """Evaluation with limited number of positive interactions."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=1,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False) == \
-           {'AP@2': 0.5, 'HR@2': 0.52, 'NDCG@2': 0.483, 'P@2': 0.6571, 'R@2': 0.52, 'RR@2': 0.5}
+           {'AP@2': 0.43, 'HR@2': 0.46, 'NDCG@2': 0.3858, 'P@2': 0.4487, 'R@2': 0.46, 'RR@2': 0.43}
 
 
 def test_ranking_evaluation_7(model, interactions_ds):
     """Evaluation with limited number of test users."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=10, k=2, n_pos_interactions=None,
-                              n_neg_interactions=None, generate_negative_pairs=False, novelty=False) \
-           == {'AP@2': 0.725, 'HR@2': 0.325, 'NDCG@2': 0.4339, 'P@2': 0.9, 'R@2': 0.325, 'RR@2': 0.25}
+                              n_neg_interactions=None, generate_negative_pairs=False, novelty=False) == \
+           {'AP@2': 0.625, 'HR@2': 0.3383, 'NDCG@2': 0.4339, 'P@2': 0.75, 'R@2': 0.3383, 'RR@2': 0.4}
 
 
 def test_ranking_evaluation_8(model):
     """Train evaluation."""
     assert ranking_evaluation(model, n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False) == \
-           {'AP@2': 0.93, 'HR@2': 0.0645, 'NDCG@2': 0.3845, 'P@2': 0.95, 'R@2': 0.0645, 'RR@2': 0.02}
+           {'AP@2': 0.835, 'HR@2': 0.0717, 'NDCG@2': 0.3845, 'P@2': 0.88, 'R@2': 0.0717, 'RR@2': 0.06}
 
 
 def test_ranking_evaluation_9(model):
@@ -113,7 +113,7 @@ def test_ranking_evaluation_11(model, interactions_ds):
     """Evaluation with custom metrics."""
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=2, n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False,
-                              metrics={'NDCG': (ndcg, {}), 'HR': (hit_ratio, {})}) == {'NDCG@2': 0.4093, 'HR@2': 0.328}
+                              metrics={'NDCG': (ndcg, {}), 'HR': (hit_ratio, {})}) == {'HR@2': 0.3137, 'NDCG@2': 0.4093}
 
 
 def test_ranking_evaluation_12(model, interactions_ds):
@@ -121,7 +121,7 @@ def test_ranking_evaluation_12(model, interactions_ds):
     assert ranking_evaluation(model, interactions_ds[1], n_test_users=None, k=[1, 2], n_pos_interactions=None,
                               n_neg_interactions=None, generate_negative_pairs=False, novelty=False,
                               metrics={'NDCG': (ndcg, {}), 'HR': (hit_ratio, {})}, verbose=False) == \
-           {'HR@1': 0.183, 'HR@2': 0.328, 'NDCG@1': 0.3968, 'NDCG@2': 0.4093}
+           {'HR@1': 0.1953, 'HR@2': 0.3137, 'NDCG@1': 0.3968, 'NDCG@2': 0.4093}
 
 
 def test_ranking_evaluation_13(model, interactions_ds):
