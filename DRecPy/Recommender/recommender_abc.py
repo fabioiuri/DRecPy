@@ -108,12 +108,11 @@ class RecommenderABC(ABC):
             if self.verbose:
                 _iter = tqdm(range(1, epochs+1), total=epochs, desc='Fitting model...', position=0, leave=True)
             for e in _iter:
-                self._loss_tracker.reset_batch_losses()
-                for b in range(1, batch_size+1):
-                    loss = self._do_batch(**kwds)
-                    if self.verbose:
-                        if loss is None: raise Exception('Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
-                        self._loss_tracker.add_batch_loss(loss)
+                loss = self._do_batch(batch_size, **kwds)
+                if self.verbose:
+                    if loss is None: raise Exception(
+                        'Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
+                    self._loss_tracker.add_epoch_loss(loss)
 
                 curr_epoch_callback_count -= 1
 
@@ -125,7 +124,7 @@ class RecommenderABC(ABC):
                         f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
 
                 if self.verbose:
-                    progress_desc = f'Fitting model... Epoch {e} Avg. Loss: {self._loss_tracker.get_batch_avg_loss():.4f}'
+                    progress_desc = f'Fitting model... Epoch {e} Loss: {loss:.4f}'
                     if epoch_callback_res is not None:
                         for metric in epoch_callback_res:
                             progress_desc += f' | {metric}: {epoch_callback_res[metric]}'
@@ -134,7 +133,6 @@ class RecommenderABC(ABC):
                         epoch_callback_res_registered = True
 
                     _iter.set_description(progress_desc)
-                    self._loss_tracker.update_epoch_loss()  # update avg training loss
 
             if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
         except NotImplementedError:
@@ -160,7 +158,7 @@ class RecommenderABC(ABC):
         pass
 
     @abstractmethod
-    def _do_batch(self, **kwds):
+    def _do_batch(self, batch_size, **kwds):
         """Abstract method that should do the required computations to adjust model parameters for each batch.
         Should use the provided interaction_dataset to do the training procedure.
         Must return the loss obtained on the current batch."""

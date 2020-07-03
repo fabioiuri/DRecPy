@@ -47,12 +47,16 @@ class CDAE(RecommenderABC):
             * reg_rate / 2
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
-    def _do_batch(self, **kwds):
-        sampled_uid, _ = self._sampler.sample_one()
+    def _do_batch(self, batch_size, **kwds):
+        sampled_triples = self._sampler.sample(batch_size)
 
         with tf.GradientTape() as tape:
             tape.watch(self.W), tape.watch(self.W_), tape.watch(self.V), tape.watch(self.b), tape.watch(self.b_)
-            real_preferences, predictions = self._reconstruct(sampled_uid, corrupt=True)
+            real_preferences, predictions = [], []
+            for uid, _, _ in sampled_triples:
+                desired, predicted = self._reconstruct(uid, corrupt=True)
+                real_preferences.append(desired)
+                predictions.append(predicted)
             loss = self._loss(real_preferences, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
 
         grads = tape.gradient(loss, [self.W, self.W_, self.V, self.b, self.b_])

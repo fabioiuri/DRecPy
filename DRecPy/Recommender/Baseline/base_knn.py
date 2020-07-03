@@ -79,7 +79,7 @@ class BaseKNN(RecommenderABC, ABC):
         self._log('Computing neighbours...')
         self._compute_neighbours()
 
-    def _do_batch(self, **kwds):
+    def _do_batch(self, batch_size, **kwds):
         raise NotImplementedError
 
     def _predict(self, uid, iid, **kwds):

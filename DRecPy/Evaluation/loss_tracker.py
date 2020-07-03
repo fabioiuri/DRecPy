@@ -3,45 +3,31 @@ import matplotlib.pyplot as plt
 
 class LossTracker:
     def __init__(self):
-        """A LossTracker instance that tracks batch losses, computed average epoch losses, and
+        """A LossTracker instance that tracks epoch losses, computed average epoch losses, and
         also tracks epoch callback losses. This utility object is used by obj:`DRecPy.Recommender.RecommenderABC` to
         track all the losses during the training process."""
-        self.losses = []
-        self.curr_avg_loss = 0
-
         self.epoch_losses = []
         self.curr_avg_epoch_loss = 0
 
         self.epoch_callback_results = {}
         self.called_epochs = []
 
-    def add_batch_loss(self, loss):
-        """Adds a new batch loss.
+    def add_epoch_loss(self, loss):
+        """Adds a new epoch loss.
 
         Args:
-            loss: The loss value obtained during the batch.
+            loss: The loss value obtained during the epoch.
         """
-        self.losses.append(loss)
-        self.curr_avg_loss = self.curr_avg_loss + (loss - self.curr_avg_loss) / len(self.losses)
+        self.epoch_losses.append(loss)
+        self.curr_avg_epoch_loss = self.curr_avg_epoch_loss + (loss - self.curr_avg_epoch_loss) / len(self.epoch_losses)
 
-    def get_batch_avg_loss(self):
-        """Gets the current average batch loss.
+    def get_epoch_avg_loss(self):
+        """Gets the current average epoch loss.
 
         Returns:
-            The current average batch loss, computed from the provided batch losses.
+            The current average epoch loss, computed from the provided epoch losses.
         """
-        return self.curr_avg_loss
-
-    def reset_batch_losses(self):
-        """Resets the stored batch losses and sets the current epoch batch average loss to 0."""
-        self.losses = []
-        self.curr_avg_loss = 0
-
-    def update_epoch_loss(self):
-        """Adds a new epoch loss by using the current epoch's batch losses and computes the new average epoch loss."""
-        self.epoch_losses.append(self.curr_avg_loss)
-        self.curr_avg_epoch_loss = self.curr_avg_epoch_loss + \
-                                   (self.curr_avg_loss - self.curr_avg_epoch_loss) / len(self.epoch_losses)
+        return self.curr_avg_epoch_loss
 
     def reset_epoch_losses(self):
         """Resets the stored epoch losses and sets the epoch average loss to 0."""

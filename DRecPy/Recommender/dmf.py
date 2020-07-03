@@ -41,6 +41,7 @@ class DMF(RecommenderABC):
 
         self.use_nce = use_nce
         self.l2_norm_vectors = l2_norm_vectors
+        self._loss = tf.losses.BinaryCrossentropy()
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
         self.user_nn = tf.keras.Sequential()
@@ -58,32 +59,31 @@ class DMF(RecommenderABC):
         self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
-    def _do_batch(self, **kwds):
-        sampled_uid, sampled_iid = self._sampler.sample_one()
-        user_vec = self.interaction_dataset.select_user_interaction_vec(sampled_uid).toarray().ravel()
-        item_vec = self.interaction_dataset.select_item_interaction_vec(sampled_iid).toarray().ravel()
+    def _do_batch(self, batch_size, **kwds):
+        sampled_triples = self._sampler.sample(batch_size)
 
-        desired_value = user_vec[sampled_iid]  # or item_vec[sampled_uid]
+        user_vecs, item_vecs, desired_values = [], [], []
+        for uid, iid, interaction_value in sampled_triples:
+            user_vecs.append(self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel())
+            item_vecs.append(self.interaction_dataset.select_item_interaction_vec(iid).toarray().ravel())
+            desired_values.append(self._standardize_value(interaction_value) if self.use_nce else interaction_value)
 
-        user_tensor = tf.convert_to_tensor([user_vec], dtype=tf.float32)
-        item_tensor = tf.convert_to_tensor([item_vec], dtype=tf.float32)
+        user_tensors = tf.convert_to_tensor(user_vecs, dtype=tf.float32)
+        item_tensors = tf.convert_to_tensor(item_vecs, dtype=tf.float32)
 
         if self.l2_norm_vectors:
-            user_tensor = tf.nn.l2_normalize(user_tensor)
-            item_tensor = tf.nn.l2_normalize(item_tensor)
+            user_tensors = tf.nn.l2_normalize(user_tensors, axis=1)
+            item_tensors = tf.nn.l2_normalize(item_tensors, axis=1)
 
         with tf.GradientTape() as tape:
-            user_rep = self.user_nn(user_tensor)
-            item_rep = self.item_nn(item_tensor)
+            user_reps = self.user_nn(user_tensors)
+            item_reps = self.item_nn(item_tensors)
 
-            norm_user_rep = tf.nn.l2_normalize(user_rep)
-            norm_item_rep = tf.nn.l2_normalize(item_rep)
+            norm_user_reps = tf.nn.l2_normalize(user_reps, axis=1)
+            norm_item_reps = tf.nn.l2_normalize(item_reps, axis=1)
 
-            pred = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_rep, norm_item_rep)))
-
-            if self.use_nce:
-                desired_value = self._standardize_value(desired_value)
-            loss = self._loss(pred, desired_value)
+            preds = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_reps, norm_item_reps), axis=1))
+            loss = self._loss(desired_values, preds)
 
         user_grads, item_grads = tape.gradient(loss, [self.user_nn.trainable_variables,
                                                       self.item_nn.trainable_variables])
@@ -91,9 +91,6 @@ class DMF(RecommenderABC):
         self._optimizer.apply_gradients(zip(item_grads, self.item_nn.trainable_variables))
 
         return loss
-
-    def _loss(self, pred, des):
-        return -(des * tf.math.log(pred) + (1 - des) * tf.math.log(1 - pred))
 
     def _predict(self, uid, iid, **kwds):
         user_vec = self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()
