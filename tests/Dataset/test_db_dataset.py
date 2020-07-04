@@ -109,18 +109,18 @@ def test_str_6(db_interactions_int_ids):
     assert str(db_interactions_int_ids) == '[DatabaseInteractionDataset with shape (4, 4)]'
 
 
-""" __copy__ """
+""" copy """
 def test_copy_0(db_interactions):
-    assert id(db_interactions) != id(db_interactions.__copy__())
+    assert id(db_interactions) != id(db_interactions.copy())
 
 
 def test_copy_1(db_interactions):
-    new = db_interactions.__copy__().select('rid > 1', copy=False)
+    new = db_interactions.copy().select('rid > 1', copy=False)
     assert db_interactions.values_list() != new.values_list()
 
 
 def test_copy_2(db_interactions):
-    new = db_interactions.__copy__()
+    new = db_interactions.copy()
     assert db_interactions.values_list() == new.values_list()
 
 
@@ -1466,7 +1466,7 @@ def test_apply_11(db_interactions_with_mult_cols):
 
 
 def test_apply_12(db_interactions):
-    db_interactions_old = db_interactions.__copy__()
+    db_interactions_old = db_interactions.copy()
     db_interactions.apply('interaction', lambda x: 1 if x > 2.5 else 0)
     assert check_list_equal([record for record in db_interactions.values()], [
         {'item': 'ps4', 'interaction': 1, 'rid': 0, 'user': 'jack'},

@@ -80,7 +80,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
         return self._df.shape[0]
 
     def select(self, query, copy=True):
-        new_ds = self.__copy__() if copy else self
+        new_ds = self.copy() if copy else self
         new_ds._apply_query(query)
 
         return new_ds
@@ -233,7 +233,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
 
     def unique(self, columns=None, copy=True):
         columns = self._handle_columns(columns)
-        new_ds = self.__copy__() if copy else self
+        new_ds = self.copy() if copy else self
 
         if 'rid' not in columns: columns.append('rid')
         df_columns = [col for col in columns if col != 'rid']
@@ -273,7 +273,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
                         yield record
 
     def drop(self, record_ids, copy=True, keep=False):
-        new_ds = self.__copy__() if copy else self
+        new_ds = self.copy() if copy else self
 
         if keep:
             new_ds._df = new_ds._df[new_ds._df.index.isin(record_ids)]
@@ -388,7 +388,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
     def __str__(self):
         return f'[MemoryInteractionDataset with shape {(len(self),  len(self.columns))}]'
 
-    def __copy__(self):
+    def copy(self):
         new = MemoryInteractionDataset.__new__(MemoryInteractionDataset)
         new.in_memory = self.in_memory
         new.verbose = self.verbose

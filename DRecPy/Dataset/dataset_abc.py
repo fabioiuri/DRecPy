@@ -249,7 +249,7 @@ class InteractionDatasetABC(ABC):
         pass
 
     @abstractmethod
-    def __copy__(self):
+    def copy(self):
         pass
 
     @abstractmethod

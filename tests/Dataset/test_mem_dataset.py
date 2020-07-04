@@ -121,18 +121,18 @@ def test_str_6(mem_interactions_int_ids):
     assert str(mem_interactions_int_ids) == '[MemoryInteractionDataset with shape (4, 4)]'
 
 
-""" __copy__ """
+""" copy """
 def test_copy_0(mem_interactions):
-    assert id(mem_interactions) != id(mem_interactions.__copy__())
+    assert id(mem_interactions) != id(mem_interactions.copy())
 
 
 def test_copy_1(mem_interactions):
-    new = mem_interactions.__copy__().select('rid > 1', copy=False)
+    new = mem_interactions.copy().select('rid > 1', copy=False)
     assert mem_interactions.values_list() != new.values_list()
 
 
 def test_copy_2(mem_interactions):
-    new = mem_interactions.__copy__()
+    new = mem_interactions.copy()
     assert mem_interactions.values_list() == new.values_list()
 
 
@@ -1527,7 +1527,7 @@ def test_apply_11(mem_interactions_with_mult_cols):
 
 
 def test_apply_12(mem_interactions):
-    mem_interactions_old = mem_interactions.__copy__()
+    mem_interactions_old = mem_interactions.copy()
     mem_interactions.apply('interaction', lambda x: 1 if x > 2.5 else 0)
     assert check_list_equal([record for record in mem_interactions.values()], [
         {'item': 'ps4', 'interaction': 1, 'rid': 0, 'user': 'jack'},

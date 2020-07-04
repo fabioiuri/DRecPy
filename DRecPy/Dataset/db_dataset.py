@@ -73,7 +73,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         return self._n_rows
 
     def select(self, query, copy=True):
-        new_ds = shallowcopy(self) if copy else self
+        new_ds = self.copy() if copy else self
         if copy: self._record_interaction()
 
         query_conditions = new_ds._parse_query(query)
@@ -155,7 +155,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         if query is None:
             new_ds = self
         else:
-            new_ds = shallowcopy(self)
+            new_ds = self.copy()
             query_conditions = new_ds._parse_query(query)
             new_state = new_ds._build_new_state(query_conditions)
             new_ds._update_state(new_state)
@@ -222,7 +222,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
     def unique(self, columns=None, copy=True):
         columns = self._handle_columns(columns)
-        new_ds = shallowcopy(self) if copy else self
+        new_ds = self.copy() if copy else self
         new_ds.columns = columns
         if copy: self._record_interaction()
 
@@ -306,7 +306,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         return ValueGenerator(self._open_value_generators, self._from_row_to_record)
 
     def drop(self, record_ids, copy=True, keep=False):
-        new_ds = shallowcopy(self) if copy else self
+        new_ds = self.copy() if copy else self
         if copy: self._record_interaction()
 
         rids = ','.join([str(r) for r in record_ids])
@@ -537,7 +537,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         except Exception as e:
             raise Exception(f'Failed to apply operation on column "{column}". Details: {e}')
 
-    def __copy__(self):
+    def copy(self):
         new = type(self)(path=self._db_path, active_table=self._active_table, columns=shallowcopy(self.columns),
                          verbose=False)
 
