@@ -37,24 +37,25 @@ class DMF(RecommenderABC):
         assert len(self.item_factors) > 0, 'The "item_factors" argument must have at least 1 element.'
 
         assert self.user_factors[-1] == self.item_factors[-1], f'The last user and item factors dimension must ' \
-            f'be equal ({self.user_factors[-1]} != {self.item_factors[-1]})'
+                                                               f'be equal ({self.user_factors[-1]} != {self.item_factors[-1]})'
 
         self.use_nce = use_nce
         self.l2_norm_vectors = l2_norm_vectors
         self._loss = tf.losses.BinaryCrossentropy()
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
+        l2_reg = tf.keras.regularizers.l2(reg_rate)
         self.user_nn = tf.keras.Sequential()
         self.user_nn.add(tf.keras.layers.Dense(self.user_factors[0], activation=tf.nn.relu,
-                                               input_shape=(self.n_items,), autocast=False))
+                                               input_shape=(self.n_items,), kernel_regularizer=l2_reg, autocast=False))
         for user_factor in self.user_factors[1:]:
-            self.user_nn.add(tf.keras.layers.Dense(user_factor, activation=tf.nn.relu))
+            self.user_nn.add(tf.keras.layers.Dense(user_factor, activation=tf.nn.relu, kernel_regularizer=l2_reg))
 
         self.item_nn = tf.keras.Sequential()
         self.item_nn.add(tf.keras.layers.Dense(self.item_factors[0], activation=tf.nn.relu,
-                                               input_shape=(self.n_users,), autocast=False))
+                                               input_shape=(self.n_users,), kernel_regularizer=l2_reg, autocast=False))
         for item_factor in self.item_factors[1:]:
-            self.item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu))
+            self.item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu, kernel_regularizer=l2_reg))
 
         self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
@@ -83,7 +84,8 @@ class DMF(RecommenderABC):
             norm_item_reps = tf.nn.l2_normalize(item_reps, axis=1)
 
             preds = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_reps, norm_item_reps), axis=1))
-            loss = self._loss(desired_values, preds)
+            loss = self._loss(desired_values, preds) + \
+                   tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
 
         user_grads, item_grads = tape.gradient(loss, [self.user_nn.trainable_variables,
                                                       self.item_nn.trainable_variables])
