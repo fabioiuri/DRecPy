@@ -168,7 +168,10 @@ class RecommenderABC(ABC):
     def _do_batch(self, batch_size, **kwds):
         """Abstract method that should do the required computations to adjust model parameters for each batch.
         Should use the provided interaction_dataset to do the training procedure.
-        Must return the loss obtained on the current batch."""
+        Must return the loss obtained on the current batch.
+
+        If the implemented model trains in one go, such as neighbourhood based models, do the fit logic on the _pre_fit
+        method and raise a NotImplementedError here."""
         pass
 
     def predict(self, user_id, item_id, skip_errors=False, **kwds):
