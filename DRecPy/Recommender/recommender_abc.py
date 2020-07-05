@@ -103,6 +103,14 @@ class RecommenderABC(ABC):
         epoch_callback_freq = kwds.get('epoch_callback_freq', 5)
         curr_epoch_callback_count = 0
 
+        if self.verbose and epoch_callback_fn is not None:
+            epoch_callback_res = epoch_callback_fn(self)
+            assert type(epoch_callback_res) is dict, \
+                f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
+
+            for metric in epoch_callback_res:
+                self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], 0)
+
         try:
             _iter = range(1, epochs+1)
             if self.verbose:
@@ -114,16 +122,15 @@ class RecommenderABC(ABC):
                         'Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
                     self._loss_tracker.add_epoch_loss(loss)
 
-                curr_epoch_callback_count -= 1
-
-                if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
-                    curr_epoch_callback_count = epoch_callback_freq
-                    epoch_callback_res_registered = False
-                    epoch_callback_res = epoch_callback_fn(self)
-                    assert type(epoch_callback_res) is dict, \
-                        f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
-
                 if self.verbose:
+                    curr_epoch_callback_count -= 1
+                    if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
+                        curr_epoch_callback_count = epoch_callback_freq
+                        epoch_callback_res_registered = False
+                        epoch_callback_res = epoch_callback_fn(self)
+                        assert type(epoch_callback_res) is dict, \
+                            f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
+ 
                     progress_desc = f'Fitting model... Epoch {e} Loss: {loss:.4f}'
                     if epoch_callback_res is not None:
                         for metric in epoch_callback_res:
