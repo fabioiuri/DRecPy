@@ -8,62 +8,36 @@ def loss_tracker():
 
 
 def test_initial_state(loss_tracker):
-    assert loss_tracker.losses == []
-    assert loss_tracker.curr_avg_loss == 0
     assert loss_tracker.epoch_losses == []
     assert loss_tracker.curr_avg_epoch_loss == 0
     assert loss_tracker.epoch_callback_results == {}
     assert loss_tracker.called_epochs == []
 
 
-def test_add_batch_loss_0(loss_tracker):
-    loss_tracker.add_batch_loss(2)
-    assert loss_tracker.losses == [2]
-    assert loss_tracker.curr_avg_loss == 2
-
-
-def test_add_batch_loss_1(loss_tracker):
-    loss_tracker.add_batch_loss(2)
-    loss_tracker.add_batch_loss(4)
-    assert loss_tracker.losses == [2, 4]
-    assert loss_tracker.curr_avg_loss == 3
-
-
-def test_add_batch_loss_3(loss_tracker):
-    loss_tracker.add_batch_loss(2)
-    loss_tracker.add_batch_loss(4)
-    loss_tracker.add_batch_loss(0)
-    assert loss_tracker.losses == [2, 4, 0]
-    assert loss_tracker.curr_avg_loss == 2
-
-
-def test_get_batch_avg_loss(loss_tracker):
-    loss_tracker.curr_avg_loss = 3
-    assert loss_tracker.get_batch_avg_loss() == 3
-
-
-def test_reset_batch_losses(loss_tracker):
-    loss_tracker.losses = [1, 2]
-    loss_tracker.curr_avg_loss = 1.5
-    loss_tracker.reset_batch_losses()
-    assert loss_tracker.losses == []
-    assert loss_tracker.curr_avg_loss == 0
-
-
-def test_update_epoch_loss_0(loss_tracker):
-    loss_tracker.curr_avg_loss = 2
-    loss_tracker.update_epoch_loss()
-    assert loss_tracker.curr_avg_epoch_loss == 2
+def test_add_epoch_loss_0(loss_tracker):
+    loss_tracker.add_epoch_loss(2)
     assert loss_tracker.epoch_losses == [2]
+    assert loss_tracker.curr_avg_epoch_loss == 2
 
 
-def test_update_epoch_loss_1(loss_tracker):
-    loss_tracker.curr_avg_loss = 2
-    loss_tracker.update_epoch_loss()
-    loss_tracker.curr_avg_loss = 4
-    loss_tracker.update_epoch_loss()
-    assert loss_tracker.curr_avg_epoch_loss == 3
+def test_add_epoch_loss_1(loss_tracker):
+    loss_tracker.add_epoch_loss(2)
+    loss_tracker.add_epoch_loss(4)
     assert loss_tracker.epoch_losses == [2, 4]
+    assert loss_tracker.curr_avg_epoch_loss == 3
+
+
+def test_add_epoch_loss_3(loss_tracker):
+    loss_tracker.add_epoch_loss(2)
+    loss_tracker.add_epoch_loss(4)
+    loss_tracker.add_epoch_loss(0)
+    assert loss_tracker.epoch_losses == [2, 4, 0]
+    assert loss_tracker.curr_avg_epoch_loss == 2
+
+
+def test_get_epoch_avg_loss(loss_tracker):
+    loss_tracker.curr_avg_epoch_loss = 3
+    assert loss_tracker.get_epoch_avg_loss() == 3
 
 
 def test_reset_epoch_losses(loss_tracker):
