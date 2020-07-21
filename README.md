@@ -116,7 +116,7 @@ print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_intera
 [CDAE] Sparsity level: approx. 94.3426%
 [CDAE] Creating auxiliary structures...
 [CDAE] Model fitted.
-Training took 671.4787721633911
+Training took 387.92349123954773
 
 {'P@1': 0.1103, 'P@5': 0.0757, 'P@10': 0.0536, 'R@1': 0.1103, 'R@5': 0.3786, 'R@10': 0.5355, 
 'HR@1': 0.1103, 'HR@5': 0.3786, 'HR@10': 0.5355, 'NDCG@1': 0.1103, 'NDCG@5': 0.2482, 'NDCG@10': 0.2987, 

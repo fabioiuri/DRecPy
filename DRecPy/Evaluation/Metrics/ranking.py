@@ -19,7 +19,7 @@ def dcg(recommendations, relevancies, k=None, strong_relevancy=True):
 
     curr_dcg = 0
     for i, r in enumerate(recommendations):
-        rel = relevancies[r]
+        rel = float(relevancies[r])
 
         if strong_relevancy:
             curr_dcg += (2 ** rel - 1) / math.log2(2 + i)

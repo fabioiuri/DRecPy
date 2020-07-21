@@ -1546,14 +1546,7 @@ def test_apply_12(mem_interactions):
 def test_apply_13(mem_interactions):
     mem_interactions.assign_internal_ids()
 
-    # save previous state
-    saved_users_records = mem_interactions._users_records
-    saved_items_records = mem_interactions._items_records
-
     mem_interactions.apply('interaction', lambda x: 1 if x > 2.5 else 0)
-    # must update the aux structure
-    assert not check_dict_equal(saved_users_records, mem_interactions._users_records)
-    assert not check_dict_equal(saved_items_records, mem_interactions._items_records)
     # must have not built unused structures
     assert mem_interactions._cached_interaction_matrix is None
     assert  mem_interactions._cached_trans_interaction_matrix is None
@@ -1564,15 +1557,10 @@ def test_apply_14(mem_interactions):
     mem_interactions._build_interaction_matrix()
 
     # save previous state
-    saved_users_records = mem_interactions._users_records
-    saved_items_records = mem_interactions._items_records
     saved_cached_int_matrix = mem_interactions._cached_interaction_matrix
     saved_cached_trans_int_matrix = mem_interactions._cached_trans_interaction_matrix
 
     mem_interactions.apply('interaction', lambda x: 1 if x > 2.5 else 0)
-    # must update the aux structure
-    assert not check_dict_equal(saved_users_records, mem_interactions._users_records)
-    assert not check_dict_equal(saved_items_records, mem_interactions._items_records)
     # must update the cached interaction matrix
     assert id(saved_cached_int_matrix) != id(mem_interactions._cached_interaction_matrix)
     assert id(saved_cached_trans_int_matrix) != id(mem_interactions._cached_trans_interaction_matrix)
