@@ -182,7 +182,7 @@ def get_test_dataset(ds_name, force_out_of_memory=False, verbose=True):
         raise FileNotFoundError(f'"{ds_name}" is not a valid dataset. Supported datasets: {", ".join(available_datasets())}.')
 
     ds_options = DATASETS[ds_name]
-    if ds_options.train_file is None:
+    if ds_options.test_file is None:
         generated_path = os.path.join(get_dataset_path(ds_name), ds_name + '_test.gen')
         if os.path.exists(generated_path):  # might have been generated already
             return get_dataset(ds_name, generated_path, is_generated=True, force_out_of_memory=force_out_of_memory,
