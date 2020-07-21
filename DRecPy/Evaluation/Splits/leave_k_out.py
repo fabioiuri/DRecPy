@@ -98,55 +98,38 @@ def leave_k_out(interaction_dataset, k=1, min_user_interactions=0, last_timestam
 
 def _leave_k_out_user_ratio(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, user, k, rng,
                             last_timestamps, timestamp_label):
-    global n_tasks_done
     user_rows_ds = interaction_dataset.select(f'user == {user}')
     n_sampled_items = int(len(user_rows_ds) * k)
-
-    if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
-        with train_rem_lock:
-            train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
-    elif n_sampled_items > 0:
-        if last_timestamps:
-            sampled_test_rids = []
-            for (rid, timestamp), i in zip(user_rows_ds.values(['rid', timestamp_label], to_list=True),
-                                           range(len(user_rows_ds))):
-                if len(sampled_test_rids) < n_sampled_items: heappush(sampled_test_rids, (timestamp, rid))
-                else: heapreplace(sampled_test_rids, (timestamp, rid))
-            with test_lock:
-                test_rids.extend([rid for _, rid in sampled_test_rids])
-        else:
-            sampled_idxs = rng.sample(range(len(user_rows_ds)), n_sampled_items)
-            for rid, i in zip(user_rows_ds.values('rid', to_list=True), range(len(user_rows_ds))):
-                with test_lock:
-                    if i in sampled_idxs:
-                        test_rids.append(rid)
-    with n_tasks_lock:
-        n_tasks_done += 1
+    _leave_k_out_user(user_rows_ds, train_rids_to_rem, test_rids, min_user_interactions, n_sampled_items, rng,
+                      last_timestamps, timestamp_label)
 
 
 def _leave_k_out_user_fixed(interaction_dataset, train_rids_to_rem, test_rids, min_user_interactions, user, k, rng,
                             last_timestamps, timestamp_label):
-    global n_tasks_done
     user_rows_ds = interaction_dataset.select(f'user == {user}')
+    _leave_k_out_user(user_rows_ds, train_rids_to_rem, test_rids, min_user_interactions, k, rng,
+                      last_timestamps, timestamp_label)
+
+
+def _leave_k_out_user(user_rows_ds, train_rids_to_rem, test_rids, min_user_interactions, k, rng,
+                            last_timestamps, timestamp_label):
+    global n_tasks_done
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
         with train_rem_lock:
-            train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
-    elif len(user_rows_ds) > k:
+            train_rids_to_rem.extend(user_rows_ds.values_list('rid', to_list=True))
+    elif len(user_rows_ds) > k > 0:
         if last_timestamps:
             sampled_test_rids = []
-            for (rid, timestamp), i in zip(user_rows_ds.values(['rid', timestamp_label], to_list=True),
-                                           range(len(user_rows_ds))):
+            for i, (rid, timestamp) in enumerate(user_rows_ds.values_list(['rid', timestamp_label], to_list=True)):
                 if len(sampled_test_rids) < k: heappush(sampled_test_rids, (timestamp, rid))
                 else: heapreplace(sampled_test_rids, (timestamp, rid))
             with test_lock:
                 test_rids.extend([rid for _, rid in sampled_test_rids])
         else:
-            sampled_idxs = rng.sample(range(len(user_rows_ds)), k)
-            for rid, i in zip(user_rows_ds.values('rid', to_list=True), range(len(user_rows_ds))):
-                with test_lock:
-                    if i in sampled_idxs:
-                        test_rids.append(rid)
+            user_rows_rids = user_rows_ds.values_list('rid', to_list=True)
+            with test_lock:
+                test_rids.extend(rng.sample(user_rows_rids, k))
 
     with n_tasks_lock:
         n_tasks_done += 1
