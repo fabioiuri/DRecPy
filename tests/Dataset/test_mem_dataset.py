@@ -244,6 +244,16 @@ def test_values_11(mem_interactions_int_ids):
     ])
 
 
+def test_values_12(mem_interactions_int_ids):
+    assert check_list_equal([record for record in mem_interactions_int_ids.values('interaction', to_list=True)],
+                            [3.0, 4.0, 1.0, 5.0])
+
+
+def test_values_13(mem_interactions_int_ids):
+    assert check_list_equal([record for record in mem_interactions_int_ids.select('user == 2').values(to_list=True)],
+                            [[2, 2, 4.0, 1]])
+
+
 """ values_list """
 def test_values_list_0(mem_interactions):
     assert check_list_equal(mem_interactions.values_list(), [

@@ -232,6 +232,15 @@ def test_values_11(db_interactions_int_ids):
     ])
 
 
+def test_values_12(db_interactions_int_ids):
+    assert check_list_equal([record for record in db_interactions_int_ids.values('interaction', to_list=True)],
+                            [3.0, 4.0, 1.0, 5.0])
+
+
+def test_values_13(db_interactions_int_ids):
+    assert check_list_equal([record for record in db_interactions_int_ids.select('user == 2').values(to_list=True)],
+                            [[2, 2, 4.0, 1]])
+
 """ values_list """
 def test_values_list_0(db_interactions):
     assert check_list_equal(db_interactions.values_list(), [
