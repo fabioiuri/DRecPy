@@ -16,10 +16,15 @@ class RecommenderABC(ABC):
 
     This class implements the skeleton methods required for building a recommender.
     It provides id-abstraction (handles conversion between raw to internal ids - by ),
-    auto-exist-check (if a given user/item is known or not) and all private methods
-    are called with internal ids only. All public methods are called with raw ids only.
+    auto identifier validation (if a given user/item is known or not), automatic progress logging, weight updates,
+    tracking loss per epoch and support for other features such as epoch callbacks and early stopping. It has a
+    structure that allows it to be fully extensible, whilst promoting model specific behavior for improved flexibility.
+    All private methods are called with internal ids only, and all public methods must be called with raw ids only.
 
-    The following methods are still required to be implemented: _pre_fit(), _do_batch() and _predict().
+    The following methods are still required to be implemented: _pre_fit(), _sample_batch(), _predict_batch(),
+    _compute_batch_loss() and _predict().
+    If there are no trainable variables set during the _pre_fit(), batch training is skipped (useful for non-deep
+    learning models).
     Optionally, these methods can be overridden: _rank() and _recommend().
 
     Args:
@@ -27,7 +32,7 @@ class RecommenderABC(ABC):
             Default: False.
         interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
             negative interaction pairs. All values above or equal interaction_threshold are considered positive, and
-            all values bellow are considered negative. Default: 0.
+            all values bellow are considered negative. Default: 0.001.
         seed (max_rating): Optional integer representing the seed value for the model pseudo-random number generator.
             Default: None.
     """
@@ -44,6 +49,8 @@ class RecommenderABC(ABC):
         self.n_rows = 0
         self.interaction_threshold = kwds.get('interaction_threshold', 1e-3)
         self.interaction_dataset = None
+        self.trainable_vars = []
+        self.optimizer = None
 
         self._loss_tracker = None
         self._rng = random.Random(self.seed)
@@ -71,6 +78,10 @@ class RecommenderABC(ABC):
                 If epoch_callback_fn is not defined, this parameter is ignored. Default: 5 (called every 5 epochs).
             copy_dataset: Optional boolean indicating weather a copy of the given dataset should be made.
                 If set to False, the given dataset instance is used. Default: False.
+            optimizer: Optional instance of a tf/keras optimizer that will be used even if there's a model specific
+                optimizer. Default: Adam optimizer with the learning rate set with the value provided in the
+                learning_rate argument; if there's a model specific optimizer (set during the model's _pre_fit), this
+                default optimizer will not be used.
 
         Returns:
             None.
@@ -95,8 +106,17 @@ class RecommenderABC(ABC):
         self._log_initial_info()
 
         self._log('Creating auxiliary structures...')
+        self._register_optimizer(tf.keras.optimizers.Adam(learning_rate=learning_rate))  # default optimizer
         self._pre_fit(learning_rate, neg_ratio, reg_rate, **kwds)
+        if kwds.get('optimizer', None) is not None:  # allow forcing custom optimizer
+            self._register_optimizer(kwds.get('optimizer'))
         self.fitted = True  # should be able to make predictions after pre fit
+
+        if len(self.trainable_vars) == 0:
+            self._log('No trainable vars found: skipping further model training. If this is non-intentional, please '
+                      'use self._register_trainable or self._register_trainables to register variables that are '
+                      'subject to weight updates.')
+            return
 
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
         epoch_callback_res, epoch_callback_res_registered = None, True
@@ -111,52 +131,61 @@ class RecommenderABC(ABC):
             for metric in epoch_callback_res:
                 self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], 0)
 
-        try:
-            _iter = range(1, epochs+1)
+        _iter = range(1, epochs+1)
+        if self.verbose:
+            _iter = tqdm(range(1, epochs+1), total=epochs, desc='Fitting model...', position=0, leave=True)
+        for e in _iter:
+            batch_samples = self._sample_batch(batch_size, **kwds)
+            with tf.GradientTape() as tape:
+                for trainable_var in self.trainable_vars:
+                    tape.watch(trainable_var)
+                predictions, desired_values = self._predict_batch(batch_samples, **kwds)
+                loss = self._compute_batch_loss(predictions, desired_values, **kwds)
+
+            gradients = tape.gradient(loss, self.trainable_vars)
+            self._update_weights(gradients)
+
             if self.verbose:
-                _iter = tqdm(range(1, epochs+1), total=epochs, desc='Fitting model...', position=0, leave=True)
-            for e in _iter:
-                loss = self._do_batch(batch_size, **kwds)
-                if self.verbose:
-                    if loss is None: raise Exception(
-                        'Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
-                    self._loss_tracker.add_epoch_loss(loss)
+                if loss is None: raise Exception(
+                    'Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
+                self._loss_tracker.add_epoch_loss(loss)
 
-                if self.verbose:
-                    curr_epoch_callback_count -= 1
-                    if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
-                        curr_epoch_callback_count = epoch_callback_freq
-                        epoch_callback_res_registered = False
-                        epoch_callback_res = epoch_callback_fn(self)
-                        assert type(epoch_callback_res) is dict, \
-                            f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
- 
-                    progress_desc = f'Fitting model... Epoch {e} Loss: {loss:.4f}'
-                    if epoch_callback_res is not None:
-                        for metric in epoch_callback_res:
-                            progress_desc += f' | {metric}: {epoch_callback_res[metric]}'
-                            if not epoch_callback_res_registered:
-                                self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], e)
-                        epoch_callback_res_registered = True
+            if self.verbose:
+                curr_epoch_callback_count -= 1
+                if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
+                    curr_epoch_callback_count = epoch_callback_freq
+                    epoch_callback_res_registered = False
+                    epoch_callback_res = epoch_callback_fn(self)
+                    assert type(epoch_callback_res) is dict, \
+                        f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
 
-                    _iter.set_description(progress_desc)
+                progress_desc = f'Fitting model... Epoch {e} Loss: {loss:.4f}'
+                if epoch_callback_res is not None:
+                    for metric in epoch_callback_res:
+                        progress_desc += f' | {metric}: {epoch_callback_res[metric]}'
+                        if not epoch_callback_res_registered:
+                            self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], e)
+                    epoch_callback_res_registered = True
 
-            if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
-        except NotImplementedError:
-            pass
+                _iter.set_description(progress_desc)
+
+        if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
 
         self._log('Model fitted.')
 
-    def _log_initial_info(self):
-        self._log(f'Max. interaction value: {self.max_interaction}')
-        self._log(f'Min. interaction value: {self.min_interaction}')
-        self._log(f'Interaction threshold value: {self.interaction_threshold}')
-        self._log(f'Number of unique users: {self.n_users}')
-        self._log(f'Number of unique items: {self.n_items}')
-        self._log(f'Number of training points: {self.n_rows}')
-        matrix_size = self.n_users * self.n_items
-        sparsity = round(100 * (1 - (self.n_rows / matrix_size)), 4)
-        self._log(f'Sparsity level: approx. {sparsity}%')
+    def _register_trainable(self, variable):
+        try:
+            iter(variable)
+        except TypeError:
+            variable = [variable]
+        self.trainable_vars.append(variable)
+
+    def _register_trainables(self, variables):
+        for variable in variables:
+            self._register_trainable(variable)
+
+    def _register_optimizer(self, optimizer):
+        self.optimizer = optimizer
 
     @abstractmethod
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
@@ -165,14 +194,31 @@ class RecommenderABC(ABC):
         pass
 
     @abstractmethod
-    def _do_batch(self, batch_size, **kwds):
-        """Abstract method that should do the required computations to adjust model parameters for each batch.
-        Should use the provided interaction_dataset to do the training procedure.
-        Must return the loss obtained on the current batch.
-
-        If the implemented model trains in one go, such as neighbourhood based models, do the fit logic on the _pre_fit
-        method and raise a NotImplementedError here."""
+    def _sample_batch(self, batch_size, **kwds):
+        """Abstract method that should sample batch_size training data points, which are then passed to the
+        _predict_batch method. The return format is not rigid in order to improve flexibility, but should contain
+        at least the following information: inputs and desired outputs."""
         pass
+
+    @abstractmethod
+    def _predict_batch(self, batch_samples, **kwds):
+        """Abstract method that should compute predictions for each of the data points contained on the batch_samples
+        argument. The return format is fixed, and should be a tuple of predictions (list) and desired values (list),
+        in this exact order."""
+        pass
+
+    @abstractmethod
+    def _compute_batch_loss(self, predictions, desired_values, **kwds):
+        """Abstract method that should compute the batch loss for the given predictions and desired_values. This loss
+        value must be differentiable with respect to the model's parameters (variables that were registered through
+        the _register_trainable or _register_trainables)."""
+        pass
+
+    def _update_weights(self, gradients):
+        for gradient, trainable_var in zip(gradients, self.trainable_vars):
+            if tf.is_tensor(gradient):
+                gradient = [gradient]
+            self.optimizer.apply_gradients(zip(gradient, trainable_var))
 
     def predict(self, user_id, item_id, skip_errors=False, **kwds):
         """Performs a prediction using the provided user_id and item_id.
@@ -289,6 +335,17 @@ class RecommenderABC(ABC):
     def _rescale_value(self, value):
         """Rescales a standardized value in the [0, 1] range, to the [self.min_interaction, self.max_interaction] range."""
         return self.min_interaction + (self.max_interaction - self.min_interaction) * value
+
+    def _log_initial_info(self):
+        self._log(f'Max. interaction value: {self.max_interaction}')
+        self._log(f'Min. interaction value: {self.min_interaction}')
+        self._log(f'Interaction threshold value: {self.interaction_threshold}')
+        self._log(f'Number of unique users: {self.n_users}')
+        self._log(f'Number of unique items: {self.n_items}')
+        self._log(f'Number of training points: {self.n_rows}')
+        matrix_size = self.n_users * self.n_items
+        sparsity = round(100 * (1 - (self.n_rows / matrix_size)), 4)
+        self._log(f'Sparsity level: approx. {sparsity}%')
 
     def _log(self, msg):
         if not self.verbose: return

@@ -42,6 +42,10 @@ model evaluation.
 
 For more information about the framework and its components, please visit the [documentation page](https://drecpy.readthedocs.io/).
 
+Here's a brief overview of the general call workflow for every recommender:
+![Call Worlflow](https://github.com/fabioiuri/DRecPy/blob/master/examples/images/call_workflow.png?raw=true)
+
+
 Installation
 ------------
 
@@ -68,6 +72,8 @@ If you want to update to the newest DRecPy version, use:
 
 Getting Started
 ---------------
+For quick guides and examples on how to implement a new recommender, or extend existing ones, please check the [documentation page on creating novel recommenders](https://drecpy.readthedocs.io/en/latest/user_guide/creating_recommender.html).
+
 Here's an example script using one of the implemented recommenders (CDAE), to train, with a validation set,  and evaluate
 its ranking performance on the MovieLens 100k data set.
 ```python
@@ -118,9 +124,9 @@ print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_intera
 [CDAE] Model fitted.
 Training took 387.92349123954773
 
-{'P@1': 0.1103, 'P@5': 0.0757, 'P@10': 0.0536, 'R@1': 0.1103, 'R@5': 0.3786, 'R@10': 0.5355, 
-'HR@1': 0.1103, 'HR@5': 0.3786, 'HR@10': 0.5355, 'NDCG@1': 0.1103, 'NDCG@5': 0.2482, 'NDCG@10': 0.2987, 
-'RR@1': 0.1103, 'RR@5': 0.2054, 'RR@10': 0.2261, 'AP@1': 0.1103, 'AP@5': 0.2054, 'AP@10': 0.2261}
+{'P@1': 0.1198, 'P@5': 0.0757, 'P@10': 0.0531, 'R@1': 0.1198, 'R@5': 0.3786, 'R@10': 0.5313, 
+'HR@1': 0.1198, 'HR@5': 0.3786, 'HR@10': 0.5313, 'NDCG@1': 0.1198, 'NDCG@5': 0.2509, 'NDCG@10': 0.3001, 
+'RR@1': 0.1198, 'RR@5': 0.209, 'RR@10': 0.2293, 'AP@1': 0.1198, 'AP@5': 0.209, 'AP@10': 0.2293}
 
 
 ```
@@ -129,11 +135,11 @@ Training took 387.92349123954773
 
 - Training
 
-![CDAE Training Performance](https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_training.png?raw=true)
+![CDAE Training Performance](https://github.com/fabioiuri/DRecPy/blob/master/examples/images/cdae_validation_training.png?raw=true)
 
 - Evaluation
 
-![CDAE Evaluation Performance](https://github.com/fabioiuri/DRecPy/blob/development/examples/images/cdae_validation_evaluation.png?raw=true)
+![CDAE Evaluation Performance](https://github.com/fabioiuri/DRecPy/blob/master/examples/images/cdae_validation_evaluation.png?raw=true)
 
 More quick and easy examples are available [here](https://github.com/fabioiuri/DRecPy/tree/master/examples).
 

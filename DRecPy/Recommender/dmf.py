@@ -57,14 +57,14 @@ class DMF(RecommenderABC):
         for item_factor in self.item_factors[1:]:
             self.item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu, kernel_regularizer=l2_reg))
 
-        self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self._register_trainable(self.user_nn.trainable_variables)
+        self._register_trainable(self.item_nn.trainable_variables)
+
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
-    def _do_batch(self, batch_size, **kwds):
-        sampled_triples = self._sampler.sample(batch_size)
-
+    def _sample_batch(self, batch_size, **kwds):
         user_vecs, item_vecs, desired_values = [], [], []
-        for uid, iid, interaction_value in sampled_triples:
+        for uid, iid, interaction_value in self._sampler.sample(batch_size):
             user_vecs.append(self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel())
             item_vecs.append(self.interaction_dataset.select_item_interaction_vec(iid).toarray().ravel())
             desired_values.append(self._standardize_value(interaction_value) if self.use_nce else interaction_value)
@@ -76,23 +76,21 @@ class DMF(RecommenderABC):
             user_tensors = tf.nn.l2_normalize(user_tensors, axis=1)
             item_tensors = tf.nn.l2_normalize(item_tensors, axis=1)
 
-        with tf.GradientTape() as tape:
-            user_reps = self.user_nn(user_tensors)
-            item_reps = self.item_nn(item_tensors)
+        return {'user_tensors': user_tensors, 'item_tensors': item_tensors, 'desired_values': desired_values}
 
-            norm_user_reps = tf.nn.l2_normalize(user_reps, axis=1)
-            norm_item_reps = tf.nn.l2_normalize(item_reps, axis=1)
+    def _predict_batch(self, batch_samples, **kwds):
+        user_reps = self.user_nn(batch_samples['user_tensors'])
+        item_reps = self.item_nn(batch_samples['item_tensors'])
 
-            preds = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_reps, norm_item_reps), axis=1))
-            loss = self._loss(desired_values, preds) + \
-                   tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
+        norm_user_reps = tf.nn.l2_normalize(user_reps, axis=1)
+        norm_item_reps = tf.nn.l2_normalize(item_reps, axis=1)
 
-        user_grads, item_grads = tape.gradient(loss, [self.user_nn.trainable_variables,
-                                                      self.item_nn.trainable_variables])
-        self._optimizer.apply_gradients(zip(user_grads, self.user_nn.trainable_variables))
-        self._optimizer.apply_gradients(zip(item_grads, self.item_nn.trainable_variables))
+        predictions = tf.maximum(1e-6, tf.reduce_sum(tf.multiply(norm_user_reps, norm_item_reps), axis=1))
+        return predictions, batch_samples['desired_values']
 
-        return loss
+    def _compute_batch_loss(self, predictions, desired_values, **kwds):
+        return self._loss(desired_values, predictions) + \
+               tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
 
     def _predict(self, uid, iid, **kwds):
         user_vec = self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()

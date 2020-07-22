@@ -41,28 +41,26 @@ class CDAE(RecommenderABC):
         self.b = tf.Variable(weight_initializer(shape=[self.hidden_factors]))
         self.b_ = tf.Variable(weight_initializer(shape=[self.n_items]))
 
-        self._optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self._register_trainables([self.W, self.W_, self.V, self.b, self.b_])
+
         self._reg = lambda W, W_, V, b, b_: \
             (tf.nn.l2_loss(W) + tf.nn.l2_loss(W_) + tf.nn.l2_loss(V) + tf.nn.l2_loss(b) + tf.nn.l2_loss(b_)) \
             * reg_rate / 2
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
-    def _do_batch(self, batch_size, **kwds):
-        sampled_triples = self._sampler.sample(batch_size)
+    def _sample_batch(self, batch_size, **kwds):
+        return self._sampler.sample(batch_size)
 
-        with tf.GradientTape() as tape:
-            tape.watch(self.W), tape.watch(self.W_), tape.watch(self.V), tape.watch(self.b), tape.watch(self.b_)
-            real_preferences, predictions = [], []
-            for uid, _, _ in sampled_triples:
-                desired, predicted = self._reconstruct(uid, corrupt=True)
-                real_preferences.append(desired)
-                predictions.append(predicted)
-            loss = self._loss(real_preferences, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
+    def _predict_batch(self, batch_samples, **kwds):
+        real_preferences, predictions = [], []
+        for uid, _, _ in batch_samples:
+            desired, predicted = self._reconstruct(uid, corrupt=True)
+            real_preferences.append(desired)
+            predictions.append(predicted)
+        return predictions, real_preferences
 
-        grads = tape.gradient(loss, [self.W, self.W_, self.V, self.b, self.b_])
-        self._optimizer.apply_gradients(zip(grads, [self.W, self.W_, self.V, self.b, self.b_]))
-
-        return loss
+    def _compute_batch_loss(self, predictions, desired_values, **kwds):
+        return self._loss(desired_values, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
 
     def _reconstruct(self, uid, corrupt=False):
         """Gathers the user embedding vector, its interaction vector (and corrupts it when corrupt=True,
