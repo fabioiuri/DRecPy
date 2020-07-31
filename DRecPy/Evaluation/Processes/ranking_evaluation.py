@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from multiprocessing.pool import ThreadPool
 from threading import Lock
 import time
+import logging
 
 n_tasks_done = 0
 n_tasks_lock = Lock()
@@ -161,9 +162,22 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
 
 def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, n_neg_interactions,
                              train_evaluation, metrics, novelty, metric_sums, k, generate_negative_pairs, rng):
+    global n_tasks_done
+
+    try:
+        __ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, n_neg_interactions,
+                                  train_evaluation, metrics, novelty, metric_sums, k, generate_negative_pairs, rng)
+    except Exception as e:
+        logging.error(e)
+    finally:
+        with n_tasks_lock:
+            n_tasks_done += 1
+
+
+def __ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, n_neg_interactions,
+                              train_evaluation, metrics, novelty, metric_sums, k, generate_negative_pairs, rng):
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
-    global n_tasks_done
     user_ds = ds_test.select(f'user == {user}')
 
     # get positive interactions
@@ -172,8 +186,6 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
         user_interacted_items = user_test_pos_ds.values_list(['item', 'interaction'])
     else:
         if len(user_test_pos_ds) < n_pos_interactions:  # not enough positive interactions
-            with n_tasks_lock:
-                n_tasks_done += 1
             return
         user_interacted_items = rng.sample(user_test_pos_ds.values_list(['item', 'interaction']), n_pos_interactions)
 
@@ -203,12 +215,10 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                 item_blacklist = item_blacklist.union(set(user_test_pos_ds.unique('item')
                                                           .values_list('item', to_list=True)))
             if model.n_items - len(item_blacklist) < n_neg_interactions:
-                print(f"Skipping user {user} due to not having enough negative eligible items to be sampled: user "
-                      f"positive items = {len(item_blacklist)}, user negative items = "
-                      f"{model.n_items - len(item_blacklist)}, required user negative items = {n_neg_interactions}. "
-                      f"Consider decreasing the n_neg_interactions parameter.")
-                with n_tasks_lock:
-                    n_tasks_done += 1
+                logging.warn(f"Skipping user {user} due to not having enough negative eligible items to be sampled: "
+                             f"user positive items = {len(item_blacklist)}, user negative items = "
+                             f"{model.n_items - len(item_blacklist)}, required user negative items = "
+                             f"{n_neg_interactions}. Consider decreasing the n_neg_interactions parameter.")
                 return
 
             while len(user_non_interacted_items) < n_neg_interactions:
@@ -219,8 +229,6 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
     # join and shuffle all items
     all_items = user_interacted_items + user_non_interacted_items
     if len(all_items) == 0:
-        with n_tasks_lock:
-            n_tasks_done += 1
         return
     rng.shuffle(all_items)
 
@@ -251,6 +259,3 @@ def _ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_
                     metric_sums[(m, k_)][0] += metric_fn(**params)
                     metric_sums[(m, k_)][1] += 1
                 except: pass
-
-    with n_tasks_lock:
-        n_tasks_done += 1
