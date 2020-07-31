@@ -121,14 +121,13 @@ print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_intera
 [CDAE] Number of training points: 89627
 [CDAE] Sparsity level: approx. 94.3426%
 [CDAE] Creating auxiliary structures...
+[CDAE] Number of registered trainable variables: 5
 [CDAE] Model fitted.
-Training took 387.92349123954773
+Training took 364.9486310482025
 
-{'P@1': 0.1198, 'P@5': 0.0757, 'P@10': 0.0531, 'R@1': 0.1198, 'R@5': 0.3786, 'R@10': 0.5313, 
-'HR@1': 0.1198, 'HR@5': 0.3786, 'HR@10': 0.5313, 'NDCG@1': 0.1198, 'NDCG@5': 0.2509, 'NDCG@10': 0.3001, 
-'RR@1': 0.1198, 'RR@5': 0.209, 'RR@10': 0.2293, 'AP@1': 0.1198, 'AP@5': 0.209, 'AP@10': 0.2293}
-
-
+{'P@1': 0.1283, 'P@5': 0.0766, 'P@10': 0.0549, 'R@1': 0.1283, 'R@5': 0.3828, 'R@10': 0.5493, 
+'HR@1': 0.1283, 'HR@5': 0.3828, 'HR@10': 0.5493, 'NDCG@1': 0.1283, 'NDCG@5': 0.2589, 'NDCG@10': 0.3126, 
+'RR@1': 0.1283, 'RR@5': 0.2181, 'RR@10': 0.2403, 'AP@1': 0.1283, 'AP@5': 0.2181, 'AP@10': 0.2403}
 ```
 
 **Generated Plots**:

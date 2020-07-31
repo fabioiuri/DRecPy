@@ -22,6 +22,9 @@ class TestRecommenderNonDeepLearning(RecommenderABC):
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
         raise NotImplemented  # since it's non-deep learning based, no need for batch training
 
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        raise NotImplemented  # since it's non-deep learning based, no need for batch training
+
     def _predict(self, uid, iid, **kwds):
         return 5  # predict for a (user, item) pair
 

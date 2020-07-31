@@ -36,6 +36,10 @@ class TestRecommender(RecommenderABC):
         self._log(f'doing _compute_batch_loss: predictions={predictions}, desired_values={desired_values}')
         return self._loss(desired_values, predictions)
 
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        self._log(f'doing _compute_reg_loss: reg_rate={reg_rate}, batch_size={batch_size}')
+        return tf.nn.l2_loss(self._weights) * reg_rate / (2 * batch_size)
+
     def _predict(self, uid, iid, **kwds):
         # predict for a (user, item) pair
         return tf.sigmoid(tf.matmul(tf.convert_to_tensor([[uid, iid]], dtype=tf.float32), self._weights))
