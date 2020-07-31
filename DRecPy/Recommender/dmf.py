@@ -63,11 +63,19 @@ class DMF(RecommenderABC):
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
     def _sample_batch(self, batch_size, **kwds):
-        user_vecs, item_vecs, desired_values = [], [], []
+        uids, iids, desired_values = [], [], []
         for uid, iid, interaction_value in self._sampler.sample(batch_size):
-            user_vecs.append(self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel())
-            item_vecs.append(self.interaction_dataset.select_item_interaction_vec(iid).toarray().ravel())
+            uids.append(uid)
+            iids.append(iid)
             desired_values.append(self._standardize_value(interaction_value) if self.use_nce else interaction_value)
+
+        user_tensors, item_tensors = self._preprocess_input(uids, iids)
+
+        return {'user_tensors': user_tensors, 'item_tensors': item_tensors, 'desired_values': desired_values}
+
+    def _preprocess_input(self, uids, iids):
+        user_vecs = [self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel() for uid in uids]
+        item_vecs = [self.interaction_dataset.select_item_interaction_vec(iid).toarray().ravel() for iid in iids]
 
         user_tensors = tf.convert_to_tensor(user_vecs, dtype=tf.float32)
         item_tensors = tf.convert_to_tensor(item_vecs, dtype=tf.float32)
@@ -76,7 +84,7 @@ class DMF(RecommenderABC):
             user_tensors = tf.nn.l2_normalize(user_tensors, axis=1)
             item_tensors = tf.nn.l2_normalize(item_tensors, axis=1)
 
-        return {'user_tensors': user_tensors, 'item_tensors': item_tensors, 'desired_values': desired_values}
+        return user_tensors, item_tensors
 
     def _predict_batch(self, batch_samples, **kwds):
         user_reps = self.user_nn(batch_samples['user_tensors'])
@@ -89,25 +97,14 @@ class DMF(RecommenderABC):
         return predictions, batch_samples['desired_values']
 
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
-        return self._loss(desired_values, predictions) + \
-               tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
+        return self._loss(desired_values, predictions)
+
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        return tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
 
     def _predict(self, uid, iid, **kwds):
-        user_vec = self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()
-        item_vec = self.interaction_dataset.select_item_interaction_vec(iid).toarray().ravel()
+        user_tensors, item_tensors = self._preprocess_input([uid], [iid])
 
-        user_tensor = tf.convert_to_tensor([user_vec], dtype=tf.float32)
-        item_tensor = tf.convert_to_tensor([item_vec], dtype=tf.float32)
-
-        if self.l2_norm_vectors:
-            user_tensor = tf.nn.l2_normalize(user_tensor)
-            item_tensor = tf.nn.l2_normalize(item_tensor)
-
-        user_rep = self.user_nn(user_tensor)
-        item_rep = self.item_nn(item_tensor)
-
-        norm_user_rep = tf.nn.l2_normalize(user_rep)
-        norm_item_rep = tf.nn.l2_normalize(item_rep)
-
-        pred = tf.reduce_sum(tf.multiply(norm_user_rep, norm_item_rep))
-        return self._rescale_value(pred)
+        preds, _ = self._predict_batch({'user_tensors': user_tensors, 'item_tensors': item_tensors,
+                                       'desired_values': None})
+        return self._rescale_value(preds[0])

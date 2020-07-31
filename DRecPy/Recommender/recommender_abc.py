@@ -22,7 +22,7 @@ class RecommenderABC(ABC):
     All private methods are called with internal ids only, and all public methods must be called with raw ids only.
 
     The following methods are still required to be implemented: _pre_fit(), _sample_batch(), _predict_batch(),
-    _compute_batch_loss() and _predict().
+    _compute_batch_loss(), _compute_reg_loss() and _predict().
     If there are no trainable variables set during the _pre_fit(), batch training is skipped (useful for non-deep
     learning models).
     Optionally, these methods can be overridden: _rank() and _recommend().
@@ -118,6 +118,8 @@ class RecommenderABC(ABC):
                       'subject to weight updates.')
             return
 
+        self._log(f'Number of registered trainable variables: {len(self.trainable_vars)}')
+
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
         epoch_callback_res, epoch_callback_res_registered = None, True
         epoch_callback_freq = kwds.get('epoch_callback_freq', 5)
@@ -140,17 +142,14 @@ class RecommenderABC(ABC):
                 for trainable_var in self.trainable_vars:
                     tape.watch(trainable_var)
                 predictions, desired_values = self._predict_batch(batch_samples, **kwds)
-                loss = self._compute_batch_loss(predictions, desired_values, **kwds)
+                loss = self._compute_batch_loss(predictions, desired_values, **kwds) + \
+                       self._compute_reg_loss(reg_rate, len(batch_samples))
 
             gradients = tape.gradient(loss, self.trainable_vars)
             self._update_weights(gradients)
 
             if self.verbose:
-                if loss is None: raise Exception(
-                    'Model\'s ._do_batch() method must return a valid loss obtained during that batch.')
                 self._loss_tracker.add_epoch_loss(loss)
-
-            if self.verbose:
                 curr_epoch_callback_count -= 1
                 if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
                     curr_epoch_callback_count = epoch_callback_freq
@@ -209,9 +208,15 @@ class RecommenderABC(ABC):
 
     @abstractmethod
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
-        """Abstract method that should compute the batch loss for the given predictions and desired_values. This loss
-        value must be differentiable with respect to the model's parameters (variables that were registered through
-        the _register_trainable or _register_trainables)."""
+        """Abstract method that should compute the batch (prediction) loss for the given predictions and desired_values.
+        This loss value must be differentiable with respect to the model's parameters (variables that were registered
+        through the _register_trainable or _register_trainables)."""
+        pass
+
+    @abstractmethod
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        """Abstract method that should compute the model's regularization loss, using the provided regularization
+        rate and taking into account that the updates to the weights are made for every batch_size iterations."""
         pass
 
     def _update_weights(self, gradients):

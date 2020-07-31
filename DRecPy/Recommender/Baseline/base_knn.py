@@ -88,6 +88,9 @@ class BaseKNN(RecommenderABC, ABC):
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
         raise NotImplementedError
 
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        raise NotImplementedError
+
     def _predict(self, uid, iid, **kwds):
         if uid is None or iid is None: return None
 

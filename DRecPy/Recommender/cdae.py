@@ -17,8 +17,8 @@ class CDAE(RecommenderABC):
         hidden_factors: An integer defining the number of units for the hidden layer.
         corruption_level: A decimal value representing the level of corruption to apply to the
             given interactions / ratings during training.
-        loss: A string or function that represents the loss function used to optimize the model.
-            Supported: mse, bce or functions (with arguments: real_preferences, predictions). Default: bce.
+        loss: A string that represents the loss function used to optimize the model.
+            Supported: mse, bce. Default: bce.
 
     For more arguments, refer to the base class: :obj:`DRecPy.Recommender.RecommenderABC`.
     """
@@ -27,8 +27,7 @@ class CDAE(RecommenderABC):
 
         self.hidden_factors = hidden_factors
         self.corruption_level = corruption_level
-        if callable(loss): self._loss = loss
-        elif loss == 'mse':  self._loss = tf.losses.MeanSquaredError()
+        if loss == 'mse':  self._loss = tf.losses.MeanSquaredError()
         elif loss == 'bce': self._loss = tf.losses.BinaryCrossentropy()
         else: raise Exception(f'Loss function "{loss}" is not supported. Supported losses: "mse", "bce".')
 
@@ -43,58 +42,53 @@ class CDAE(RecommenderABC):
 
         self._register_trainables([self.W, self.W_, self.V, self.b, self.b_])
 
-        self._reg = lambda W, W_, V, b, b_: \
-            (tf.nn.l2_loss(W) + tf.nn.l2_loss(W_) + tf.nn.l2_loss(V) + tf.nn.l2_loss(b) + tf.nn.l2_loss(b_)) \
-            * reg_rate / 2
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
     def _sample_batch(self, batch_size, **kwds):
         return self._sampler.sample(batch_size)
 
     def _predict_batch(self, batch_samples, **kwds):
-        real_preferences, predictions = [], []
+        predictions, desired_values = [], []
         for uid, _, _ in batch_samples:
-            desired, predicted = self._reconstruct(uid, corrupt=True)
-            real_preferences.append(desired)
-            predictions.append(predicted)
-        return predictions, real_preferences
+            prediction_vector, desired_vector = self._reconstruct_for_training(uid)
+            predictions.append(prediction_vector)
+            desired_values.append(desired_vector)
+
+        return predictions, desired_values
+
+    def _reconstruct_for_training(self, uid):
+        user_embedding = tf.nn.embedding_lookup(self.V, uid)
+        desired_vector = [1 if i >= self.interaction_threshold else 0 for i in
+                          self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()]
+        corrupted_vector = [0. if self._rng.uniform(0, 1) < self.corruption_level
+                            else i / (1 - self.corruption_level) for i in desired_vector]
+        return self._reconstruct(user_embedding, corrupted_vector), desired_vector
+
+    def _reconstruct_for_predictions(self, uid):
+        user_embedding = tf.nn.embedding_lookup(self.V, uid)
+        desired_vector = [1 if i >= self.interaction_threshold else 0 for i in
+                          self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()]
+        return self._reconstruct(user_embedding, desired_vector).numpy().ravel()
+
+    def _reconstruct(self, user_embedding, input_vector, **kwds):
+        hidden_layer = tf.sigmoid(tf.matmul(tf.convert_to_tensor([input_vector], dtype=tf.float32), self.W) +
+                                  user_embedding + self.b)  # I x K (k = hidden factors)
+        return tf.sigmoid(tf.matmul(hidden_layer, self.W_) + self.b_)  # K x I
 
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
-        return self._loss(desired_values, predictions) + self._reg(self.W, self.W_, self.V, self.b, self.b_)
+        return self._loss(desired_values, predictions)
 
-    def _reconstruct(self, uid, corrupt=False):
-        """Gathers the user embedding vector, its interaction vector (and corrupts it when corrupt=True,
-        which happens during training only), and computes the hidden layer values and finally the output
-        layer values."""
-        user_embedding = tf.nn.embedding_lookup(self.V, uid)
-        user_interaction_vec = self.interaction_dataset.select_user_interaction_vec(uid).toarray().ravel()
+    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
+        return sum([tf.nn.l2_loss(v) for v in [self.W, self.W_, self.V, self.b, self.b_]]) * reg_rate / (2 * batch_size)
 
-        if corrupt:
-            user_corrupted_interaction_vec = [0. if interaction == 0 or self._rng.uniform(0, 1) < self.corruption_level
-                                              else self._standardize_value(interaction / (1 - self.corruption_level))
-                                              for interaction in user_interaction_vec]
-            hidden_layer = tf.sigmoid(
-                tf.matmul(tf.convert_to_tensor([user_corrupted_interaction_vec], dtype=tf.float32), self.W) +
-                user_embedding + self.b)  # I x K (k = hidden factors)
-        else:
-            user_interaction_vec = [self._standardize_value(i) for i in user_interaction_vec]
-            hidden_layer = tf.sigmoid(
-                tf.matmul(tf.convert_to_tensor([user_interaction_vec], dtype=tf.float32), self.W) +
-                user_embedding + self.b)  # I x K (k = hidden factors)
+    def _predict(self, uid, iid=None, **kwds):
+        if uid is None: return None
 
-        output_layer = tf.sigmoid(tf.matmul(hidden_layer, self.W_) + self.b_)  # K x I
-        return user_interaction_vec, output_layer
-
-    def _predict(self, uid, iid, **kwds):
-        if uid is None or iid is None: return None
-
-        _, predictions = self._reconstruct(uid)
-        predictions = predictions.numpy().ravel()
-        return predictions[iid]
+        predictions = self._reconstruct_for_predictions(uid)
+        return predictions if iid is None else predictions[iid]
 
     def _rank(self, uid, iids, n, novelty):
-        _, predictions = self._reconstruct(uid)
-        predictions = predictions.numpy().ravel()
+        predictions = self._predict(uid)
 
         if novelty:
             user_ds = self.interaction_dataset.select(f'uid == {uid}')
