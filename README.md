@@ -113,16 +113,16 @@ print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_intera
 **Output**:
 
 ```
-[CDAE] Max. interaction value: 5
-[CDAE] Min. interaction value: 0
-[CDAE] Interaction threshold value: 0.001
-[CDAE] Number of unique users: 943
-[CDAE] Number of unique items: 1680
-[CDAE] Number of training points: 89627
-[CDAE] Sparsity level: approx. 94.3426%
-[CDAE] Creating auxiliary structures...
-[CDAE] Number of registered trainable variables: 5
-[CDAE] Model fitted.
+[2020-08-10 21:11:26,630] (INFO) CDAE_CLOGGER: Max. interaction value: 5
+[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Min. interaction value: 0
+[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Interaction threshold value: 0.001
+[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of unique users: 943
+[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of unique items: 1680
+[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of training points: 89627
+[2020-08-10 21:11:26,632] (INFO) CDAE_CLOGGER: Sparsity level: approx. 94.3426%
+[2020-08-10 21:11:26,632] (INFO) CDAE_CLOGGER: Creating auxiliary structures...
+[2020-08-10 21:11:26,691] (INFO) CDAE_CLOGGER: Number of registered trainable variables: 5
+[2020-08-10 21:18:13,798] (INFO) CDAE_CLOGGER: Model fitted.
 Training took 364.9486310482025
 
 {'P@1': 0.1283, 'P@5': 0.0766, 'P@10': 0.0549, 'R@1': 0.1283, 'R@5': 0.3828, 'R@10': 0.5493, 

@@ -7,6 +7,8 @@ from DRecPy.Evaluation import LossTracker
 from heapq import nlargest
 import random
 import tensorflow as tf
+import logging
+from datetime import datetime
 
 tf.config.set_soft_device_placement(True)  # automatically choose an existing and supported device to run (GPU, CPU)
 
@@ -29,7 +31,10 @@ class RecommenderABC(ABC):
 
     Args:
         verbose: Optional boolean indicating if the recommender should print progress logs or not.
-            Default: False.
+            Default: True.
+        log_file: Optional boolean indicating if a file containing all produced logs should be created or not.
+            It will be created on the current directory, following the pattern: drecpy__DATE_TIME_RECNAME.log.
+            Default: True.
         interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
             negative interaction pairs. All values above or equal interaction_threshold are considered positive, and
             all values bellow are considered negative. Default: 0.001.
@@ -55,6 +60,26 @@ class RecommenderABC(ABC):
         self._loss_tracker = None
         self._rng = random.Random(self.seed)
         tf.random.set_seed(self.seed)
+
+        log_formatter = logging.Formatter('[%(asctime)s] (%(levelname)s) %(name)s: %(message)s')
+        ch = logging.StreamHandler()
+        ch.setFormatter(log_formatter)
+        ch.setLevel(logging.INFO)
+        self._logger = logging.getLogger(f'{self.__class__.__name__}_CLOGGER')
+        self._logger.propagate = False
+        self._logger.setLevel(logging.INFO)
+        self._logger.handlers.clear()
+        self._logger.addHandler(ch)
+        self._file_logger = None
+
+        if kwds.get('log_file', True):
+            fh = logging.FileHandler(f'drecpy_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{self.__class__.__name__}.log')
+            fh.setLevel(logging.INFO)
+            fh.setFormatter(log_formatter)
+            self._file_logger = logging.getLogger(f'{self.__class__.__name__}_FLOGGER')
+            self._file_logger.propagate = False
+            self._file_logger.setLevel(logging.INFO)
+            self._file_logger.addHandler(fh)
 
     def fit(self, interaction_dataset, epochs=50, batch_size=32, learning_rate=0.001, neg_ratio=5, reg_rate=0.001,
             copy_dataset=False, **kwds):
@@ -88,7 +113,7 @@ class RecommenderABC(ABC):
         """
         self.interaction_dataset = interaction_dataset
         if copy_dataset:
-            self._log('Cloning new dataset instance...')
+            self._info('Cloning new dataset instance...')
             self.interaction_dataset = interaction_dataset.__copy__()
         self.interaction_dataset.assign_internal_ids()
 
@@ -105,7 +130,7 @@ class RecommenderABC(ABC):
         # Log extra info
         self._log_initial_info()
 
-        self._log('Creating auxiliary structures...')
+        self._info('Creating auxiliary structures...')
         self._register_optimizer(tf.keras.optimizers.Adam(learning_rate=learning_rate))  # default optimizer
         self._pre_fit(learning_rate, neg_ratio, reg_rate, **kwds)
         if kwds.get('optimizer', None) is not None:  # allow forcing custom optimizer
@@ -113,12 +138,12 @@ class RecommenderABC(ABC):
         self.fitted = True  # should be able to make predictions after pre fit
 
         if len(self.trainable_vars) == 0:
-            self._log('No trainable vars found: skipping further model training. If this is non-intentional, please '
+            self._info('No trainable vars found: skipping further model training. If this is non-intentional, please '
                       'use self._register_trainable or self._register_trainables to register variables that are '
                       'subject to weight updates.')
             return
 
-        self._log(f'Number of registered trainable variables: {len(self.trainable_vars)}')
+        self._info(f'Number of registered trainable variables: {len(self.trainable_vars)}')
 
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
         epoch_callback_res, epoch_callback_res_registered = None, True
@@ -167,10 +192,11 @@ class RecommenderABC(ABC):
                     epoch_callback_res_registered = True
 
                 _iter.set_description(progress_desc)
+                self._file_logger.info(progress_desc)
 
         if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
 
-        self._log('Model fitted.')
+        self._info('Model fitted.')
 
     def _register_trainable(self, variable):
         try:
@@ -342,19 +368,33 @@ class RecommenderABC(ABC):
         return self.min_interaction + (self.max_interaction - self.min_interaction) * value
 
     def _log_initial_info(self):
-        self._log(f'Max. interaction value: {self.max_interaction}')
-        self._log(f'Min. interaction value: {self.min_interaction}')
-        self._log(f'Interaction threshold value: {self.interaction_threshold}')
-        self._log(f'Number of unique users: {self.n_users}')
-        self._log(f'Number of unique items: {self.n_items}')
-        self._log(f'Number of training points: {self.n_rows}')
+        self._info(f'Max. interaction value: {self.max_interaction}')
+        self._info(f'Min. interaction value: {self.min_interaction}')
+        self._info(f'Interaction threshold value: {self.interaction_threshold}')
+        self._info(f'Number of unique users: {self.n_users}')
+        self._info(f'Number of unique items: {self.n_items}')
+        self._info(f'Number of training points: {self.n_rows}')
         matrix_size = self.n_users * self.n_items
         sparsity = round(100 * (1 - (self.n_rows / matrix_size)), 4)
-        self._log(f'Sparsity level: approx. {sparsity}%')
+        self._info(f'Sparsity level: approx. {sparsity}%')
 
-    def _log(self, msg):
+    def _info(self, msg):
         if not self.verbose: return
-        print('[{name}] {msg}'.format(name=self.__class__.__name__, msg=msg))
+        self._logger.info(msg)
+        if self._file_logger:
+            self._file_logger.info(msg)
+
+    def _warn(self, msg):
+        if not self.verbose: return
+        self._logger.warning(msg)
+        if self._file_logger:
+            self._file_logger.warning(msg)
+
+    def _error(self, msg):
+        if not self.verbose: return
+        self._logger.error(msg)
+        if self._file_logger:
+            self._file_logger.error(msg)
 
     def save(self, save_path):  # todo: need interactionsDataset when saving?
         """Save/export the current model.

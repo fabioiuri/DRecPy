@@ -10,7 +10,7 @@ class TestRecommenderNonDeepLearning(RecommenderABC):
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
         # used to declare variables and do the non-deep learning fit process, such as computing similarities and
         # neighbours for knn-based models
-        self._log(f'doing pre-fit with learning_rate={learning_rate}, neg_ratio={neg_ratio}, reg_rate={reg_rate}')
+        self._info(f'doing pre-fit with learning_rate={learning_rate}, neg_ratio={neg_ratio}, reg_rate={reg_rate}')
         pass
 
     def _sample_batch(self, batch_size, **kwds):

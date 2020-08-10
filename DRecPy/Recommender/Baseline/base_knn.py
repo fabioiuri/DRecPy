@@ -73,10 +73,10 @@ class BaseKNN(RecommenderABC, ABC):
         self._neighbours = dict()
 
     def _pre_fit(self, learning_rate, neg_ratio, reg_rate, **kwds):
-        self._log('Computing similarity matrix...')
+        self._info('Computing similarity matrix...')
         self._compute_similarities()
 
-        self._log('Computing neighbours...')
+        self._info('Computing neighbours...')
         self._compute_neighbours()
 
     def _sample_batch(self, batch_size, **kwds):
