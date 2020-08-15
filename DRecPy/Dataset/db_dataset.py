@@ -375,6 +375,20 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         return None if ret is None else ret[0]
 
     def save(self, path='', columns=None, write_header=False):
+        """Persists the current dataset instance in the provided path, as a csv or sqlite file.
+        Note that internal identifiers, such as the row id (rid), user internal id (uid) and item internal id (iid)
+        are never persisted, since they're only useful during runtime.
+
+        Args:
+            path: A string that represents the path where the current dataset values will be persisted.
+                If it ends in ".sqlite" then a sqlite db file will be persisted in the provided path.
+                Otherwise a csv file will be persisted.
+            columns: An optional list with the names of the columns that should be persisted. Default: all columns.
+            write_header: A boolean indicating whether to write the csv header on the persisted file. Default: False.
+
+        Returns:
+            None.
+        """
         if len(path) == 0 and '.tmp.' in self._db_path:
             raise Exception('No save path was specified.')
 

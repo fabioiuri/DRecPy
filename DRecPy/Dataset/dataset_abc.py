@@ -213,43 +213,112 @@ class InteractionDatasetABC(ABC):
 
     @abstractmethod
     def assign_internal_ids(self):
-        """
+        """Assigns user and item internal ids. Internal ids are integer consecutive identifiers that represent each
+        user or item uniquely. Two new columns are created on this dataset instance: "uid" and "iid", for user internal
+        id and item internal id, respectively.
 
         Returns:
-
+            None.
         """
         pass
 
     @abstractmethod
     def remove_internal_ids(self):
+        """Removes user and item internal ids.
+
+        Returns:
+            None.
+        """
         pass
 
     @abstractmethod
     def user_to_uid(self, user):
+        """Converts a given raw user id into its correspondent internal id. Raises exception if no internal ids are
+        assigned.
+
+        Args:
+            user: The user raw id.
+
+        Returns:
+            An integer value representing the user internal id, or None if the raw user id provided does not exist.
+        """
         pass
 
     @abstractmethod
     def uid_to_user(self, uid):
+        """Converts a given internal user id into its correspondent raw id. Raises exception if no internal ids are
+        assigned.
+
+        Args:
+            uid: The user internal id.
+
+        Returns:
+            An integer value representing the user raw id, or None if the internal user id provided does not exist.
+        """
         pass
 
     @abstractmethod
     def item_to_iid(self, item):
-        pass
+        """Converts a given raw item id into its correspondent internal id. Raises exception if no internal ids are
+        assigned.
 
-    @abstractmethod
-    def apply(self, column, function):
+        Args:
+            item: The item raw id.
+
+        Returns:
+            An integer value representing the item internal id, or None if the raw item id provided does not exist.
+        """
         pass
 
     @abstractmethod
     def iid_to_item(self, iid):
+        """Converts a given internal item id into its correspondent raw id. Raises exception if no internal ids are
+        assigned.
+
+        Args:
+            iid: The item internal id.
+
+        Returns:
+            An integer value representing the item raw id, or None if the internal item id provided does not exist.
+        """
+        pass
+
+    @abstractmethod
+    def apply(self, column, function):
+        """Modifies the current dataset instance by applying a transformation to a specific column in every row.
+
+        Args:
+            column: A string that represents the name of the column that will be transformed.
+            function: The function that will be used to map the current column value in each row to the new one.
+
+        Returns:
+            None.
+        """
         pass
 
     @abstractmethod
     def save(self, path, columns=None, write_header=False):
+        """Persists the current dataset instance in the provided path, as a csv file.
+        Note that internal identifiers, such as the row id (rid), user internal id (uid) and item internal id (iid)
+        are never persisted, since they're only useful during runtime.
+
+        Args:
+            path: A string that represents the path where the current dataset values will be persisted.
+            columns: An optional list with the names of the columns that should be persisted. Default: all columns.
+            write_header: A boolean indicating whether to write the csv header on the persisted file. Default: False.
+
+        Returns:
+            None.
+        """
         pass
 
     @abstractmethod
     def copy(self):
+        """Copies the current dataset instance into a new one.
+
+        Returns:
+            InteractionDataset instance with the same data values as the current one.
+        """
         pass
 
     @abstractmethod
