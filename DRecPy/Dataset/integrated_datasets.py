@@ -3,6 +3,8 @@ from zipfile import ZipFile
 import requests
 from DRecPy.Dataset import InteractionDataset
 from DRecPy.Evaluation.Splits import leave_k_out
+from .file_utils import get_dataset_path
+from .file_utils import is_stored
 
 
 class DatasetReadConfig:
@@ -50,28 +52,6 @@ DATASETS = {
                             encoding='latin1',
                             has_header=True)
 }
-
-
-def data_path():
-    """Auxiliary method to create (if needed) and to return the package data path."""
-    path = os.environ.get('DATA_FOLDER', os.path.expanduser('~') + '/.DRecPy_data/')
-    if path[-1] != '/':
-        path += '/'
-    if not os.path.exists(path):
-        print('> Creating data path at', path)
-        os.makedirs(path)
-    return path
-
-
-def get_dataset_path(ds_name):
-    """Auxiliary method to build the dataset path given the dataset name."""
-    return data_path() + ds_name + '/'
-
-
-def is_stored(ds_name):
-    """Verifies if the dataset with name passed as argument is already stored."""
-    ds_path = get_dataset_path(ds_name)
-    return os.path.exists(ds_path)
 
 
 def download_dataset(ds_name):

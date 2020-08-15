@@ -1,4 +1,7 @@
 from .dataset_abc import InteractionDatasetABC
+from .file_utils import data_path
+from .file_utils import register_temp_file
+from .file_utils import unregister_temp_file
 import sqlite3 as sql
 from copy import copy as shallowcopy
 import csv
@@ -7,6 +10,7 @@ from tqdm import tqdm
 from os import remove
 from os import rename
 from os.path import isfile
+from os.path import join
 from scipy.sparse import csr_matrix
 
 
@@ -572,6 +576,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 del self._shared_db_instances[self._db_path]
                 if '.tmp.' in self._db_path:
                     remove(self._db_path)
+                    unregister_temp_file(self._db_path)
 
     def __str__(self):
         return f'[DatabaseInteractionDataset with shape ({len(self)}, {len(self.columns)})]'
@@ -650,9 +655,8 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
                 num_lines += 1
 
         # open db connection and create table
-        from .integrated_datasets import data_path
         self._col_types = infer_col_types(first_line)
-        self._open_connection(f'{data_path()}interactions_{id(self)}.{str(random.random()).split(".")[1]}.tmp.sqlite')
+        self._open_connection(join(data_path(), f'interactions_{id(self)}.{str(random.random()).split(".")[1]}.tmp.sqlite'))
         self._build_table(self._open_cursor())
         self._n_rows = 0
 
@@ -832,13 +836,14 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         return interaction
 
     def _open_connection(self, db_path, loading=False):
-        """Creates a new db file and opens a new connection to it (if loading is True).
+        """Creates a new db file and opens a new connection to it (if loading is False).
         Otherwise, if just opens a new connection to the db located at db_path."""
         if getattr(self, 'conn', None) is not None:
             self._conn.close()
-        if not isfile(db_path) and loading:
-            raise FileNotFoundError(f'No database file found at "{db_path}".')
-
+        if not isfile(db_path):
+            if loading:
+                raise FileNotFoundError(f'No database file found at "{db_path}".')
+            register_temp_file(db_path)
         self._db_path = db_path
         self._conn = sql.connect(db_path, check_same_thread=False)
         self._set_pragmas(self._conn)
