@@ -34,7 +34,7 @@ class RecommenderABC(ABC):
             Default: True.
         log_file: Optional boolean indicating if a file containing all produced logs should be created or not.
             It will be created on the current directory, following the pattern: drecpy__DATE_TIME_RECNAME.log.
-            Default: True.
+            Default: False.
         interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
             negative interaction pairs. All values above or equal interaction_threshold are considered positive, and
             all values bellow are considered negative. Default: 0.001.
@@ -72,7 +72,7 @@ class RecommenderABC(ABC):
         self._logger.addHandler(ch)
         self._file_logger = None
 
-        if kwds.get('log_file', True):
+        if kwds.get('log_file', False):
             fh = logging.FileHandler(f'drecpy_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{self.__class__.__name__}.log')
             fh.setLevel(logging.INFO)
             fh.setFormatter(log_formatter)
