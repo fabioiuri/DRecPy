@@ -9,3 +9,4 @@
 - Add better structure to the Metrics submodule, so that its easier to understand what values are passed through during evaluation processes.
 - Add better structure to the Splits submodule, so that its easier to understand what values are passed through during evaluation processes.
 - Add better structure to the Processes submodule, so that its easier to understand what values are passed through during evaluation processes.
+- Add negative sampling to the list-wise sampler
