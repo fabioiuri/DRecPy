@@ -60,7 +60,7 @@ class InteractionDatasetABC(ABC):
                 null interaction pairs. Default: None.
 
         Returns:
-            A generator that yields negative / null interaction pairs, that is, (user internal ids, item internal id)
+            A generator that yields negative / null interaction pairs, that is, (user internal id, item internal id)
             tuples.
         """
         pass
