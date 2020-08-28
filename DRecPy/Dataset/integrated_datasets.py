@@ -84,7 +84,7 @@ def download_dataset(ds_name):
     os.remove(tmp_path)
 
 
-def get_dataset(ds_name, path, is_generated=False, force_out_of_memory=False, verbose=True):
+def get_dataset(ds_name, path, is_generated=False, force_out_of_memory=False, verbose=True, **kwds):
     """Returns an InteractionDataset containing the data present in the path argument, and uses the
     settings defined for the dataset specified in the ds_name argument. Downloads the dataset
     if is not already stored."""
@@ -95,14 +95,14 @@ def get_dataset(ds_name, path, is_generated=False, force_out_of_memory=False, ve
 
     if is_generated:
         return InteractionDataset(path, delimiter=',', columns=ds_options.columns, encoding=ds_options.encoding,
-                                  in_memory=not force_out_of_memory, verbose=verbose)
+                                  in_memory=not force_out_of_memory, verbose=verbose, **kwds)
     else:
         return InteractionDataset(path, delimiter=ds_options.delimiter, columns=ds_options.columns,
                                   encoding=ds_options.encoding, has_header=ds_options.has_header,
-                                  in_memory=not force_out_of_memory, verbose=verbose)
+                                  in_memory=not force_out_of_memory, verbose=verbose, **kwds)
 
 
-def get_train_dataset(ds_name, force_out_of_memory=False, verbose=True):
+def get_train_dataset(ds_name, force_out_of_memory=False, verbose=True, **kwds):
     """Gets a train dataset. If the named dataset does not have a specific train file
     (example: BX dataset), a train InteractionDataset will be created using leave_k_out() from the Evaluation module
     on the full dataset. The split is deterministic (i.e. has a defined seed value).
@@ -126,11 +126,11 @@ def get_train_dataset(ds_name, force_out_of_memory=False, verbose=True):
         generated_path = os.path.join(get_dataset_path(ds_name), ds_name + '_train.gen')
         if os.path.exists(generated_path):  # might have been generated already
             return get_dataset(ds_name, generated_path, is_generated=True, force_out_of_memory=force_out_of_memory,
-                               verbose=verbose)
+                               verbose=verbose, **kwds)
 
         # need to generate it now
         path = os.path.join(get_dataset_path(ds_name), ds_options.full_file)
-        full_ds = get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose)
+        full_ds = get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose, **kwds)
         train_ds, test_ds = leave_k_out(full_ds, k=10, min_user_interactions=10, seed=10)
 
         # store generated datasets for future calls
@@ -139,10 +139,10 @@ def get_train_dataset(ds_name, force_out_of_memory=False, verbose=True):
         return train_ds
 
     path = os.path.join(get_dataset_path(ds_name), ds_options.train_file)
-    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose)
+    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose, **kwds)
 
 
-def get_test_dataset(ds_name, force_out_of_memory=False, verbose=True):
+def get_test_dataset(ds_name, force_out_of_memory=False, verbose=True, **kwds):
     """Gets a test dataset. If the named dataset does not have a specific test file
     (example: BX dataset), a test InteractionDataset will be created using leave_k_out() from the Evaluation module
     on the full dataset. The split is deterministic (i.e. has a defined seed value).
@@ -166,11 +166,11 @@ def get_test_dataset(ds_name, force_out_of_memory=False, verbose=True):
         generated_path = os.path.join(get_dataset_path(ds_name), ds_name + '_test.gen')
         if os.path.exists(generated_path):  # might have been generated already
             return get_dataset(ds_name, generated_path, is_generated=True, force_out_of_memory=force_out_of_memory,
-                               verbose=verbose)
+                               verbose=verbose, **kwds)
 
         # need to generate it now
         path = os.path.join(get_dataset_path(ds_name), ds_options.full_file)
-        full_ds = get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose)
+        full_ds = get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose, **kwds)
         train_ds, test_ds = leave_k_out(full_ds, k=10, min_user_interactions=10, seed=10)
 
         # store generated datasets for future calls
@@ -179,10 +179,10 @@ def get_test_dataset(ds_name, force_out_of_memory=False, verbose=True):
         return test_ds
 
     path = os.path.join(get_dataset_path(ds_name), ds_options.test_file)
-    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose)
+    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose, **kwds)
 
 
-def get_full_dataset(ds_name, force_out_of_memory=False, verbose=True):
+def get_full_dataset(ds_name, force_out_of_memory=False, verbose=True, **kwds):
     """Gets a full dataset. Might download the dataset if it hasn't been downloaded before.
 
     Args:
@@ -199,7 +199,7 @@ def get_full_dataset(ds_name, force_out_of_memory=False, verbose=True):
         raise FileNotFoundError(f'"{ds_name}" is not a valid dataset. Supported datasets: {", ".join(available_datasets())}.')
 
     path = os.path.join(get_dataset_path(ds_name), DATASETS[ds_name].full_file)
-    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose)
+    return get_dataset(ds_name, path, force_out_of_memory=force_out_of_memory, verbose=verbose, **kwds)
 
 
 def available_datasets():
