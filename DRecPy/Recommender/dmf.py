@@ -57,8 +57,7 @@ class DMF(RecommenderABC):
         for item_factor in self.item_factors[1:]:
             self.item_nn.add(tf.keras.layers.Dense(item_factor, activation=tf.nn.relu, kernel_regularizer=l2_reg))
 
-        self._register_trainable(self.user_nn.trainable_variables)
-        self._register_trainable(self.item_nn.trainable_variables)
+        self._register_trainables([self.user_nn, self.item_nn])
 
         self._sampler = PointSampler(self.interaction_dataset, neg_ratio, self.interaction_threshold, self.seed)
 
@@ -98,9 +97,6 @@ class DMF(RecommenderABC):
 
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
         return self._loss(desired_values, predictions)
-
-    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
-        return tf.math.add_n(self.user_nn.losses) + tf.math.add_n(self.item_nn.losses)
 
     def _predict(self, uid, iid, **kwds):
         user_tensors, item_tensors = self._preprocess_input([uid], [iid])

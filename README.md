@@ -35,8 +35,7 @@ otherwise, if you're developing a model, you won't need to use raw ids.
 recommender systems.
 - **Sampling techniques** for point based and list based models.
 - **Evaluation processes** for predictive models, as well as for learn-to-rank models.
-- **Support for multi-column data sets**, i.e. not being limited to (user, item, rating) triples.
-- Automatic **plot generation for loss values during model training**, as well as test scores during
+- Automatic **progress logging** and **plot generation for loss values during model training**, as well as test scores during
 model evaluation.
 - **All methods with stochastic factors receive a seed parameter**, in order to allow result reproducibility.
 
@@ -84,6 +83,7 @@ from DRecPy.Evaluation.Processes import ranking_evaluation
 from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Metrics import ndcg
 from DRecPy.Evaluation.Metrics import hit_ratio
+from DRecPy.Evaluation.Metrics import precision
 import time
 
 
@@ -107,27 +107,29 @@ print("Training took", time.time() - start_train)
 
 print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_interactions=1,
                          n_neg_interactions=100, generate_negative_pairs=True, seed=10,
+                         metrics={'HR': (hit_ratio, {}), 'NDCG': (ndcg, {}), 'Prec': (precision, {})},
                          max_concurrent_threads=4, verbose=True))
 ```
 
 **Output**:
 
 ```
-[2020-08-10 21:11:26,630] (INFO) CDAE_CLOGGER: Max. interaction value: 5
-[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Min. interaction value: 0
-[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Interaction threshold value: 0.001
-[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of unique users: 943
-[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of unique items: 1680
-[2020-08-10 21:11:26,631] (INFO) CDAE_CLOGGER: Number of training points: 89627
-[2020-08-10 21:11:26,632] (INFO) CDAE_CLOGGER: Sparsity level: approx. 94.3426%
-[2020-08-10 21:11:26,632] (INFO) CDAE_CLOGGER: Creating auxiliary structures...
-[2020-08-10 21:11:26,691] (INFO) CDAE_CLOGGER: Number of registered trainable variables: 5
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Max. interaction value: 5
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Min. interaction value: 0
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Interaction threshold value: 0.001
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Number of unique users: 943
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Number of unique items: 1680
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Number of training points: 89627
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Sparsity level: approx. 94.3426%
+[2020-08-30 22:15:26,523] (INFO) CDAE_CLOGGER: Creating auxiliary structures...
+[2020-08-30 22:15:26,576] (INFO) CDAE_CLOGGER: Number of registered trainable variables: 5
+Fitting model... Epoch 50 Loss: 0.2147 | val_HR@10: 0.5589 | val_NDCG@10: 0.3152: 100%|██████████| 50/50 [05:16<00:00, 17.36s/it]
 [2020-08-10 21:18:13,798] (INFO) CDAE_CLOGGER: Model fitted.
 Training took 364.9486310482025
 
-{'P@1': 0.1283, 'P@5': 0.0766, 'P@10': 0.0549, 'R@1': 0.1283, 'R@5': 0.3828, 'R@10': 0.5493, 
-'HR@1': 0.1283, 'HR@5': 0.3828, 'HR@10': 0.5493, 'NDCG@1': 0.1283, 'NDCG@5': 0.2589, 'NDCG@10': 0.3126, 
-'RR@1': 0.1283, 'RR@5': 0.2181, 'RR@10': 0.2403, 'AP@1': 0.1283, 'AP@5': 0.2181, 'AP@10': 0.2403}
+{'HR@1': 0.1283, 'HR@5': 0.3828, 'HR@10': 0.5493, 'NDCG@1': 0.1283, 'NDCG@5': 0.2589, 
+'NDCG@10': 0.3126, 'Prec@1': 0.1283, 'Prec@5': 0.0766, 'Prec@10': 0.0549}
+
 ```
 
 **Generated Plots**:
@@ -142,14 +144,16 @@ Training took 364.9486310482025
 
 More quick and easy examples are available [here](https://github.com/fabioiuri/DRecPy/tree/master/examples).
 
-Implemented Models
-------------------
+Implemented Recommenders
+------------------------
+
+#### Deep Learning-Based
 | Recommender Type |   Name    |
 |:----------------:|:---------:|
 | Learn-to-rank    | [CDAE (Collaborative Denoising Auto-Encoder)](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.cdae) |
 | Learn-to-rank    | [DMF (Deep Matrix Factorization)](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.dmf)              |
 
-#### Implemented Baselines (non deep learning based) 
+#### Non-Deep Learning-Based
 | Recommender Type |   Name    |
 |:----------------:|:---------:|
 | Predictive       | [User/Item KNN](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.Baseline.html#drecpy-recommender-baseline-knn-module) |
@@ -169,6 +173,8 @@ Contributors
 
 This work was conducted under the supervision of Prof. Francisco M. Couto, and during the initial development phase the project was financially supported by a FCT research scholarship UID/CEC/00408/2019, under the research institution LASIGE, from the Faculty of Sciences, University of Lisbon.
 
+Public contribution is welcomed, and if you wish to contribute just open a PR or contect me fabioiuri@live.com.
+ 
 Development Status
 ------------------
 
@@ -177,7 +183,6 @@ Project in pre-alpha stage.
 Planned work:
 - Wrap up missing documentation
 - Implement more models
-- Implement list-wise sampling strategy
 - Refine and clean unit tests
 
 If you have any bugs to report or update suggestions, you can use DRecPy's [github issues page](https://github.com/fabioiuri/DRecPy/issues) or email me directly to fabioiuri@live.com.

@@ -17,16 +17,22 @@ class RecommenderABC(ABC):
     """Base recommender abstract class.
 
     This class implements the skeleton methods required for building a recommender.
-    It provides id-abstraction (handles conversion between raw to internal ids - by ),
+    It provides id-abstraction (handles conversion between raw to internal ids,
     auto identifier validation (if a given user/item is known or not), automatic progress logging, weight updates,
     tracking loss per epoch and support for other features such as epoch callbacks and early stopping. It has a
     structure that allows it to be fully extensible, whilst promoting model specific behavior for improved flexibility.
     All private methods are called with internal ids only, and all public methods must be called with raw ids only.
 
     The following methods are still required to be implemented: _pre_fit(), _sample_batch(), _predict_batch(),
-    _compute_batch_loss(), _compute_reg_loss() and _predict().
+    _compute_batch_loss() and _predict().
     If there are no trainable variables set during the _pre_fit(), batch training is skipped (useful for non-deep
-    learning models).
+    learning models). Trainable variables can be registered via _register_trainable() or _register_trainables().
+
+    If the provided trainable variables are of type tf.keras.models.Model or tf.keras.layers.Layer, then the
+    regularizers added when instantiating these variables (e.g. via kernel_regularizer attribute of a layer) will be
+    used to automatically compute the regularization loss. To add a custom regularization loss
+    (or if the implemented model uses tf.Variables), implement the self._compute_reg_loss().
+
     Optionally, these methods can be overridden: _rank() and _recommend().
 
     Args:
@@ -55,6 +61,9 @@ class RecommenderABC(ABC):
         self.interaction_threshold = kwds.get('interaction_threshold', 1e-3)
         self.interaction_dataset = None
         self.trainable_vars = []
+        self.trainable_weights = []
+        self.trainable_layers = []
+        self.trainable_models = []
         self.optimizer = None
 
         self._loss_tracker = None
@@ -127,7 +136,6 @@ class RecommenderABC(ABC):
 
         self._loss_tracker = LossTracker()
 
-        # Log extra info
         self._log_initial_info()
 
         self._info('Creating auxiliary structures...')
@@ -137,13 +145,16 @@ class RecommenderABC(ABC):
             self._register_optimizer(kwds.get('optimizer'))
         self.fitted = True  # should be able to make predictions after pre fit
 
-        if len(self.trainable_vars) == 0:
+        if len(self.trainable_weights) == 0 and len(self.trainable_layers) == 0 and len(self.trainable_models) == 0:
             self._info('No trainable vars found: skipping further model training. If this is non-intentional, please '
                       'use self._register_trainable or self._register_trainables to register variables that are '
                       'subject to weight updates.')
             return
 
-        self._info(f'Number of registered trainable variables: {len(self.trainable_vars)}')
+        self._info(f'Number of registered trainable variables: '
+                   f'{len(self.trainable_weights) + len(self.trainable_layers) + len(self.trainable_models)}')
+
+        progress_desc = ''
 
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
         epoch_callback_res, epoch_callback_res_registered = None, True
@@ -164,14 +175,19 @@ class RecommenderABC(ABC):
         for e in _iter:
             batch_samples = self._sample_batch(batch_size, **kwds)
             with tf.GradientTape() as tape:
-                for trainable_var in self.trainable_vars:
-                    tape.watch(trainable_var)
                 predictions, desired_values = self._predict_batch(batch_samples, **kwds)
-                loss = self._compute_batch_loss(predictions, desired_values, **kwds) + \
-                       self._compute_reg_loss(reg_rate, len(batch_samples))
 
-            gradients = tape.gradient(loss, self.trainable_vars)
-            self._update_weights(gradients)
+                trainable_weights = self.trainable_weights + \
+                                    [layer.trainable_weights for layer in self.trainable_layers] + \
+                                    [model.trainable_weights for model in self.trainable_models]
+                for trainable_weight in trainable_weights:
+                    tape.watch(trainable_weight)
+
+                loss = self._compute_batch_loss(predictions, desired_values, **kwds) + \
+                    self._compute_reg_loss(reg_rate, len(batch_samples), self.trainable_models, self.trainable_layers, self.trainable_weights)
+
+            gradients = tape.gradient(loss, trainable_weights)
+            self._update_weights(gradients, trainable_weights)
 
             if self.verbose:
                 self._loss_tracker.add_epoch_loss(loss)
@@ -199,11 +215,18 @@ class RecommenderABC(ABC):
         self._info('Model fitted.')
 
     def _register_trainable(self, variable):
-        try:
-            iter(variable)
-        except TypeError:
-            variable = [variable]
-        self.trainable_vars.append(variable)
+        if variable is None:
+            raise Exception('Cannot register None as a trainable variable.')
+
+        if isinstance(variable, tf.keras.models.Model):
+            self.trainable_models.append(variable)
+        elif isinstance(variable, tf.keras.layers.Layer):
+            self.trainable_layers.append(variable)
+        elif tf.is_tensor(variable):
+            self.trainable_weights.append(variable)
+        else:
+            raise Exception(f'Invalid trainable variable {variable}. The supported types are: tf.keras.models.Model, '
+                            f'tf.keras.layers.Layer and tf.Variable.')
 
     def _register_trainables(self, variables):
         for variable in variables:
@@ -239,16 +262,26 @@ class RecommenderABC(ABC):
         through the _register_trainable or _register_trainables)."""
         pass
 
-    @abstractmethod
-    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
-        """Abstract method that should compute the model's regularization loss, using the provided regularization
-        rate and taking into account that the updates to the weights are made for every batch_size iterations."""
-        pass
+    def _compute_reg_loss(self, reg_rate, batch_size, trainable_models, trainable_layers, trainable_weights, **kwds):
+        """Method that computes the model's regularization loss, using the provided regularization
+        rate and taking into account that the updates to the weights are made for every batch_size iterations.
 
-    def _update_weights(self, gradients):
-        for gradient, trainable_var in zip(gradients, self.trainable_vars):
+        The default implementation is only useful when the registered trainable variables are of type
+        tf.keras.models.Model or tf.keras.layers.Layer, in which case the registered regularizers (e.g. via
+        kernel_regularizer attribute of a layer) are added to the loss of the recommender for each batch.
+
+        If the registered variables are of type tf.Variable, then the trainable_layers and trainable_models parameters
+        will be empty lists, and the trainable_weights parameter will contain these tf.Variables that are updated for
+        each epoch."""
+        return sum([tf.math.add_n(trainable.losses) if len(trainable.losses) > 0 else 0
+                    for trainable in trainable_layers + trainable_models])
+
+    def _update_weights(self, gradients, trainable_weights):
+        for gradient, trainable_var in zip(gradients, trainable_weights):
             if tf.is_tensor(gradient):
                 gradient = [gradient]
+            if tf.is_tensor(trainable_var):
+                trainable_var = [trainable_var]
             self.optimizer.apply_gradients(zip(gradient, trainable_var))
 
     def predict(self, user_id, item_id, skip_errors=False, **kwds):

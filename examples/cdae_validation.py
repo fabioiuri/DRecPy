@@ -5,6 +5,7 @@ from DRecPy.Evaluation.Processes import ranking_evaluation
 from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Metrics import ndcg
 from DRecPy.Evaluation.Metrics import hit_ratio
+from DRecPy.Evaluation.Metrics import precision
 import time
 
 
@@ -28,4 +29,5 @@ print("Training took", time.time() - start_train)
 
 print(ranking_evaluation(cdae, ds_test, k=[1, 5, 10], novelty=True, n_pos_interactions=1,
                          n_neg_interactions=100, generate_negative_pairs=True, seed=10,
+                         metrics={'HR': (hit_ratio, {}), 'NDCG': (ndcg, {}), 'Prec': (precision, {})},
                          max_concurrent_threads=4, verbose=True))

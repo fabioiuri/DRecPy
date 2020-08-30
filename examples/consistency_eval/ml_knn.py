@@ -8,8 +8,7 @@ from DRecPy.Evaluation.Metrics import ndcg
 
 ds = get_full_dataset('ml-100k')
 
-ds_train, ds_test = matrix_split(ds, user_test_ratio=0.2, item_test_ratio=0.2, seed=15,
-                                 verbose=False)
+ds_train, ds_test = matrix_split(ds, user_test_ratio=0.2, item_test_ratio=0.2, seed=0, verbose=False)
 
 # cosine sim
 knn = UserKNN(k=10, m=0, sim_metric='cosine_cf', shrinkage=None, seed=15, use_averages=False, verbose=True)

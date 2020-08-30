@@ -8,7 +8,7 @@ DRecPy allows you to easily implement novel recommender models without the need 
 
 Deep Learning-based Recommenders
 --------------------------------
-To create a DL-based recommender you should create a class that extends the `RecommenderABC` class, and implements at least the required abstract methods: `_pre_fit()`, `_sample_batch()`, `_predict_batch()`, `_compute_batch_loss()`, `_compute_reg_loss()`  and `_predict()`.
+To create a DL-based recommender you should create a class that extends the `RecommenderABC` class, and implements at least the required abstract methods: `_pre_fit()`, `_sample_batch()`, `_predict_batch()`, `_compute_batch_loss()` and `_predict()`.
 
 The `_pre_fit()` method should:
 
@@ -22,9 +22,10 @@ The `_predict_batch()` method should compute predictions for each of the sampled
 
 The `_compute_batch_loss()` method should compute and return the loss value associated with the given predictions and desired values. This loss must be differentiable with respect to all training variables, so that weight updates can be made.
 
-The `_compute_reg_loss()` method should compute and return the regularization loss value associated with the trainable variables.
-
 Finally, the `_predict()` method should compute a single prediction, for the provided user id and item id.
+
+Another method that can be overridden is the `_compute_reg_loss()`, which should compute and return the regularization loss value associated with the trainable variables.
+Its default implementation is only useful when the registered trainable variables are of type tf.keras.models.Model or tf.keras.layers.Layer, in which case the registered regularizers (e.g. via kernel_regularizer attribute of a layer) are added to the loss of the recommender for each batch.
 
 If the `_rank()` method is not implemented, and if you call `rank()` on the new model, the `_predict()` method will be used to score each item.
 Similarly, if the `_recommend()` method is not implemented, and if you call `recommend()`, the `rank()` will also be used to rank all existent items and return the top `N`.
@@ -48,11 +49,11 @@ Some other **important notes**:
 
 Non-Deep Learning-based Recommenders
 ------------------------------------
-To create a non-DL-based recommender you should create a class that extends the `RecommenderABC` class, and implements at least the required abstract methods: `_pre_fit()`, `_sample_batch()`, `_predict_batch()`, `_compute_batch_loss()`,  `_compute_reg_loss()` and `_predict()`.
+To create a non-DL-based recommender you should create a class that extends the `RecommenderABC` class, and implements at least the required abstract methods: `_pre_fit()`, `_sample_batch()`, `_predict_batch()`, `_compute_batch_loss()` and `_predict()`.
 
 Note that in this case, the implementation of the `_sample_batch()`, `_predict_batch()`, `_compute_batch_loss()` and  `_compute_reg_loss()` is irrelevant, since they will never be called.
 
-The `_pre_fit()` method should create the required data structures and do the computations to completely fit the model, because no batch training will be applied. In this case, **no trainable variable can be registered**.
+The `_pre_fit()` method should create the required data structures and do the computations to completely fit the model, because no batch training will be applied. In this case, **trainable variables must not be registered**, otherwise batch-training will proceed.
 
 All other methods such as the `_predict()`, `_rank()` and `_recommend()`, follow the same guidelines.
 
@@ -72,7 +73,9 @@ To extend an existent recommender, one should:
 - If there are changes to the batch sampling workflow, override the `_sample_batch()` method and call its original (if some of its logic can be reused), and then apply the custom logic;
 - When there are changes on the way predictions are made, override the `_predict_batch()` and call its original (if some of its logic can be reused), followed by adding the custom prediction logic to the existent predictions. Sometimes, if the original model has independent logic on the `_predict()` that does not use the `_predict_batch()`, you might need to override it too.
 - If there are changes to the way the predictive loss function is computed, override the `_compute_batch_loss()` and adapt it to return the new predictive loss value from the provided predictions and expected values.
-- If there are changes to the way the regularization loss function is computed, maybe due to having additional trainable variables, override the `_compute_reg_loss()` and adapt it to return the new regularization loss value from the current state of the network's weights.
+- Overriding the `_compute_reg_loss()` is only necessary in some situations. Make sure that:
+    1. If the new model uses trainable variables of type tf.keras.models.Model or tf.keras.layers.Layer, and you've added their regularization using the regularization parameters of each layer (e.g. kerner_regularizer attribute), the `RecommenderABC._compute_reg_loss()` should always be called.
+    2. If the new model uses trainable variables of type tf.Variable, override the `_compute_reg_loss()` to compute their regularization values. Note that if the original model uses trainable variables of type tf.keras.models.Model or tf.keras.layers.Layer, the `RecommenderABC._compute_reg_loss()` should always be called.
 
 A very simple example of extending an existing model is shown bellow, which is a modification of the DMF (Deep Matrix Factorization) recommender:
 

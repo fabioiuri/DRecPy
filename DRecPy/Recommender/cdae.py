@@ -78,8 +78,8 @@ class CDAE(RecommenderABC):
     def _compute_batch_loss(self, predictions, desired_values, **kwds):
         return self._loss(desired_values, predictions)
 
-    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
-        return sum([tf.nn.l2_loss(v) for v in [self.W, self.W_, self.V, self.b, self.b_]]) * reg_rate / (2 * batch_size)
+    def _compute_reg_loss(self, reg_rate, batch_size, trainable_models, trainable_layers, trainable_weights, **kwds):
+        return sum([tf.nn.l2_loss(v) for v in [self.W, self.W_, self.V]]) * reg_rate / batch_size
 
     def _predict(self, uid, iid=None, **kwds):
         if uid is None: return None
