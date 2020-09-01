@@ -9,6 +9,9 @@ import random
 import tensorflow as tf
 import logging
 from datetime import datetime
+import copy
+
+from DRecPy.Recommender.EarlyStopping.early_stopping_rule_abc import InvalidEpochValidationResultsException
 
 tf.config.set_soft_device_placement(True)  # automatically choose an existing and supported device to run (GPU, CPU)
 
@@ -64,6 +67,7 @@ class RecommenderABC(ABC):
         self.trainable_weights = []
         self.trainable_layers = []
         self.trainable_models = []
+        self.epoch_weights = []
         self.optimizer = None
 
         self._loss_tracker = None
@@ -107,9 +111,16 @@ class RecommenderABC(ABC):
                 current state. It receives one argument - the model at its current state - and should return a dict
                 mapping each metric's name to the corresponding value. The results will be displayed in a graph at the
                 end of the model fit and during the fit process on the logged progress bar description only if verbose
-                is set to True.
+                is set to True. Default: None
             epoch_callback_freq: Optional integer representing the frequency in which the epoch_callback_fn is called.
                 If epoch_callback_fn is not defined, this parameter is ignored. Default: 5 (called every 5 epochs).
+            early_stopping_rule: Optional instance of EarlyStoppingRuleABC that will be used to compute the early
+                stopping epoch and according to how the rule works, it might stop the training before achieving the
+                total number of epochs. Since this uses epoch callbacks, the rule will only be used if an
+                epoch_callback_fn is defined. Default: None
+            early_stopping_freq: Optional integer representing the frequency in which the early_stopping_rule is
+                computed. If early_stopping_rule is not defined, this parameter is ignored. Default: 5 (called every 5
+                epochs).
             copy_dataset: Optional boolean indicating weather a copy of the given dataset should be made.
                 If set to False, the given dataset instance is used. Default: False.
             optimizer: Optional instance of a tf/keras optimizer that will be used even if there's a model specific
@@ -157,17 +168,20 @@ class RecommenderABC(ABC):
         progress_desc = ''
 
         epoch_callback_fn = kwds.get('epoch_callback_fn', None)
-        epoch_callback_res, epoch_callback_res_registered = None, True
+        epoch_callback_ret, epoch_callback_res_registered = None, True
         epoch_callback_freq = kwds.get('epoch_callback_freq', 5)
-        curr_epoch_callback_count = 0
+
+        early_stopping_rule = kwds.get('early_stopping_rule', None)
+        early_stopping_freq = kwds.get('early_stopping_freq', 5)
+        early_stopping_best_epoch = None
 
         if self.verbose and epoch_callback_fn is not None:
-            epoch_callback_res = epoch_callback_fn(self)
-            assert type(epoch_callback_res) is dict, \
-                f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
+            epoch_callback_ret = epoch_callback_fn(self)
+            assert type(epoch_callback_ret) is dict, \
+                f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_ret)}'
 
-            for metric in epoch_callback_res:
-                self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], 0)
+            for metric in epoch_callback_ret:
+                self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_ret[metric], 0)
 
         _iter = range(1, epochs+1)
         if self.verbose:
@@ -188,29 +202,64 @@ class RecommenderABC(ABC):
 
             gradients = tape.gradient(loss, trainable_weights)
             self._update_weights(gradients, trainable_weights)
+            self._store_epoch_weights()
 
-            if self.verbose:
+            if self.verbose or early_stopping_rule is not None:
+                # only need to compute epoch callbacks when verbose is active or with early stopping
                 self._loss_tracker.add_epoch_loss(loss)
-                curr_epoch_callback_count -= 1
-                if epoch_callback_fn is not None and curr_epoch_callback_count <= 0:
-                    curr_epoch_callback_count = epoch_callback_freq
+                if epoch_callback_fn is not None and e % epoch_callback_freq == 0:
                     epoch_callback_res_registered = False
-                    epoch_callback_res = epoch_callback_fn(self)
-                    assert type(epoch_callback_res) is dict, \
-                        f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_res)}'
+                    epoch_callback_ret = epoch_callback_fn(self)
+                    assert isinstance(epoch_callback_ret, dict), \
+                        f'The return type of the epoch_callback_fn should be dict, but found {type(epoch_callback_ret)}'
 
                 progress_desc = f'Fitting model... Epoch {e} Loss: {loss:.4f}'
-                if epoch_callback_res is not None:
-                    for metric in epoch_callback_res:
-                        progress_desc += f' | {metric}: {epoch_callback_res[metric]}'
+                if epoch_callback_ret is not None:
+                    for metric in epoch_callback_ret:
+                        progress_desc += f' | {metric}: {epoch_callback_ret[metric]}'
                         if not epoch_callback_res_registered:
-                            self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_res[metric], e)
+                            self._loss_tracker.add_epoch_callback_result(metric, epoch_callback_ret[metric], e)
                     epoch_callback_res_registered = True
 
-                _iter.set_description(progress_desc)
-                self._file_logger.info(progress_desc)
+            if early_stopping_rule is not None and e % early_stopping_freq == 0:
+                try:
+                    early_stopping_best_epoch = early_stopping_rule.compute(self._loss_tracker.epoch_losses,
+                                                                            self._loss_tracker.epoch_callback_results,
+                                                                            self._loss_tracker.called_epochs)
+                    if early_stopping_rule.stop_training(e, early_stopping_best_epoch, epochs):
+                        break
+                except InvalidEpochValidationResultsException as e:
+                    self._warn(f'Failed to compute early stopping rule {early_stopping_rule.__class__.__name__}: {e}')
 
-        if self.verbose: self._loss_tracker.display_graph(model_name=self.__class__.__name__)
+            if early_stopping_best_epoch is not None:
+                progress_desc += f' | {early_stopping_rule.__class__.__name__} best epoch: {early_stopping_best_epoch}'
+
+            if self.verbose:
+                _iter.set_description(progress_desc)
+            self._info(progress_desc, log_console=False)
+
+        if early_stopping_rule is not None and e % early_stopping_freq != 0:  # not already computed on last epoch
+            try:
+                early_stopping_best_epoch = early_stopping_rule.compute(self._loss_tracker.epoch_losses,
+                                                                        self._loss_tracker.epoch_callback_results,
+                                                                        self._loss_tracker.called_epochs)
+                progress_desc += f' | {early_stopping_rule.__class__.__name__} best epoch: {early_stopping_best_epoch}'
+                if self.verbose:
+                    _iter.set_description(progress_desc)
+                self._info(progress_desc, log_console=False)
+            except InvalidEpochValidationResultsException as e:
+                self._warn(f'Failed to compute early stopping rule {early_stopping_rule.__class__.__name__}: {e}')
+
+        if early_stopping_best_epoch is not None and early_stopping_best_epoch != epochs:
+            self._info(f'Reverting network weights to epoch {early_stopping_best_epoch} due to the evaluation of the '
+                       f'early stopping rule {early_stopping_rule.__class__.__name__}.')
+            self._revert_weights(early_stopping_best_epoch)
+
+        if self.verbose:
+            self._loss_tracker.display_graph(
+                model_name=self.__class__.__name__,
+                stopping_epoch=early_stopping_best_epoch if early_stopping_best_epoch != epochs else None
+            )
 
         self._info('Model fitted.')
 
@@ -283,6 +332,24 @@ class RecommenderABC(ABC):
             if tf.is_tensor(trainable_var):
                 trainable_var = [trainable_var]
             self.optimizer.apply_gradients(zip(gradient, trainable_var))
+
+    def _store_epoch_weights(self):
+        self.epoch_weights.append({
+            'trainable_weights': copy.deepcopy(self.trainable_weights),
+            'trainable_layers': [layer.trainable_weights for layer in self.trainable_layers],
+            'trainable_models': [model.trainable_weights for model in self.trainable_models]
+        })
+
+    def _revert_weights(self, epoch):
+        target_weights = self.epoch_weights[epoch-1]  # convert to 0-based idx
+        for model, weights in zip(self.trainable_models, target_weights['trainable_models']):
+            model.set_weights(weights)
+        for layer, weights in zip(self.trainable_layers, target_weights['trainable_layers']):
+            layer.set_weights(weights)
+        for variable, weights in zip(self.trainable_weights, target_weights['trainable_weights']):
+            variable.assign(weights)
+
+        self._info(f'Network weights reverted from epoch {len(self.epoch_weights)} to epoch {epoch}.')
 
     def predict(self, user_id, item_id, skip_errors=False, **kwds):
         """Performs a prediction using the provided user_id and item_id.
@@ -411,22 +478,25 @@ class RecommenderABC(ABC):
         sparsity = round(100 * (1 - (self.n_rows / matrix_size)), 4)
         self._info(f'Sparsity level: approx. {sparsity}%')
 
-    def _info(self, msg):
+    def _info(self, msg, log_console=True, log_file=True):
         if not self.verbose: return
-        self._logger.info(msg)
-        if self._file_logger:
+        if log_console:
+            self._logger.info(msg)
+        if self._file_logger and log_file:
             self._file_logger.info(msg)
 
-    def _warn(self, msg):
+    def _warn(self, msg, log_console=True, log_file=True):
         if not self.verbose: return
-        self._logger.warning(msg)
-        if self._file_logger:
+        if log_console:
+            self._logger.warning(msg)
+        if self._file_logger and log_file:
             self._file_logger.warning(msg)
 
-    def _error(self, msg):
+    def _error(self, msg, log_console=True, log_file=True):
         if not self.verbose: return
-        self._logger.error(msg)
-        if self._file_logger:
+        if log_console:
+            self._logger.error(msg)
+        if self._file_logger and log_file:
             self._file_logger.error(msg)
 
     def save(self, save_path):  # todo: need interactionsDataset when saving?
