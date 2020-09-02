@@ -571,7 +571,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
         return new
 
-    def close(self):  # todo: not deleting all the time - fix it
+    def close(self):
         """Cleanup method to delete temporary database files when they're not in use anymore."""
 
         if self._db_path is not None and self._db_path + self._active_table in self._shared_db_table_instances:

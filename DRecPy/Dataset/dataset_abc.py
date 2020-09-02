@@ -195,7 +195,7 @@ class InteractionDatasetABC(ABC):
         return [record for record in self.values(columns=columns, to_list=to_list)]
 
     @abstractmethod
-    def drop(self, record_ids, copy=True, keep=False): # todo: add tests for keep=True
+    def drop(self, record_ids, copy=True, keep=False):
         """Remove (or keep) the provided list of record ids from the current InteractionDataset instance.
 
         Args:
