@@ -1,9 +1,8 @@
-from DRecPy.Evaluation.Metrics import precision
-from DRecPy.Evaluation.Metrics import recall
-from DRecPy.Evaluation.Metrics import hit_ratio
-from DRecPy.Evaluation.Metrics import ndcg
-from DRecPy.Evaluation.Metrics import reciprocal_rank
-from DRecPy.Evaluation.Metrics import average_precision
+from DRecPy.Evaluation.Metrics import RankingMetricABC
+from DRecPy.Evaluation.Metrics import Precision
+from DRecPy.Evaluation.Metrics import Recall
+from DRecPy.Evaluation.Metrics import HitRatio
+from DRecPy.Evaluation.Metrics import NDCG
 import random
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -50,11 +49,8 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
             considered negative. Default: model.interaction_threshold.
         novelty: A boolean indicating whether only novel recommendations should be taken into account or not.
             Default: False.
-        metrics: An optional dict mapping the names of the metrics to a tuple containing the metric eval function as the
-            first element, and the default arguments to call it as the second element.
-            Eg: {'f_score': (f_score, {beta: 1.2})}. Default: dict with the following metrics: precision at k, recall
-            at k, hit ratio at k, normalized discounted cumulative gain at k, reciprocal ranking at k, average
-            precision at k.
+        metrics: An optional list containing instances of RankingMetricABC. Default: [Precision(), Recall(),
+            HitRatio(), NDCG()].
         max_concurrent_threads: An optional integer representing the max concurrent threads to use. Default: 4.
         seed: An optional, integer representing the seed for the random number generator used to sample positive
             and negative interaction pairs. Default: 0.
@@ -85,25 +81,15 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
         train_evaluation = True
         ds_test = model.interaction_dataset
 
-    metrics = kwds.get('metrics', {
-        'P': (precision, {}),
-        'R': (recall, {}),
-        'HR': (hit_ratio, {}),
-        'NDCG': (ndcg, {}),
-        'RR': (reciprocal_rank, {}),
-        'AP': (average_precision, {})
-    })
+    metrics = kwds.get('metrics', [Precision(), Recall(), HitRatio(), NDCG()])
 
-    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}. ' \
-        f'Should map metric names to a tuple containing the corresponding metric function and an extra argument dict.'
+    assert isinstance(metrics, list), f'Expected "metrics" argument to be a list and found {type(metrics)}. ' \
+        f'Should contain instances of RankingMetricABC.'
 
     for m in metrics:
-        err_msg = f'Expected metric {m} to map to a tuple containing the corresponding metric function and an extra argument dict.'
-        assert type(metrics[m]) is tuple, err_msg
-        assert callable(metrics[m][0]), err_msg
-        assert type(metrics[m][1]) is dict, err_msg
+        assert isinstance(m, RankingMetricABC), f'Expected metric {m} to be an instance of type RankingMetricABC.'
 
-    metric_sums = {(m, k_): [0, 0] for m in metrics for k_ in k}  # list of (metric value sum, metric rankings count)
+    metric_sums = {(m.name, k_): [0, 0] for m in metrics for k_ in k}  # list of (metric value sum, metric rankings count)
     num_users_made = 0
 
     unique_test_users_ds = ds_test.unique('user')
@@ -143,8 +129,8 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
 
     pool.join()  # Wait for all tasks to complete
 
-    results = {m + f'@{k}': round(metric_sums[(m, k)][0] / metric_sums[(m, k)][1], 4) if metric_sums[(m, k)][1] > 0 else 0
-               for m, k in metric_sums}
+    results = {m + f'@{k}': round(metric_sums[(m, k)][0] / metric_sums[(m, k)][1], 4)
+        if metric_sums[(m, k)][1] > 0 else 0 for m, k in metric_sums}
 
     if kwds.get('verbose', True) and len(k) > 1:
         fig, axes = plt.subplots(1)
@@ -153,7 +139,7 @@ def ranking_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_inter
         axes.set_ylabel("Value", fontsize=12)
         axes.set_xlabel("k", fontsize=12)
         k = sorted(k)
-        for m in metrics: axes.plot(k, [results[m + f'@{k_}'] for k_ in k], '--o', label=m)
+        for m in metrics: axes.plot(k, [results[m.name + f'@{k_}'] for k_ in k], '--o', label=m.name)
         plt.legend()
         plt.show(block=kwds.get('block', True))
 
@@ -241,9 +227,8 @@ def __ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos
     with metric_lock:
         for m in metrics:
             for k_ in k:
-                metric_fn = metrics[m][0]
-                param_names = metric_fn.__code__.co_varnames
-                params = {**metrics[m][1]}
+                param_names = m.__call__.__code__.co_varnames
+                params = dict()
                 for param_name in param_names:
                     if param_name == 'recommendations':
                         params[param_name] = recommendations
@@ -256,6 +241,6 @@ def __ranking_evaluation_user(model, user, ds_test, interaction_threshold, n_pos
                     elif param_name == 'k':
                         params[param_name] = k_
                 try:
-                    metric_sums[(m, k_)][0] += metric_fn(**params)
-                    metric_sums[(m, k_)][1] += 1
+                    metric_sums[(m.name, k_)][0] += m(**params)
+                    metric_sums[(m.name, k_)][1] += 1
                 except: pass

@@ -2,9 +2,9 @@ from DRecPy.Recommender.Baseline import UserKNN
 from DRecPy.Dataset import get_full_dataset
 from DRecPy.Evaluation.Processes import ranking_evaluation
 from DRecPy.Evaluation.Splits import matrix_split
-from DRecPy.Evaluation.Metrics import precision
-from DRecPy.Evaluation.Metrics import recall
-from DRecPy.Evaluation.Metrics import ndcg
+from DRecPy.Evaluation.Metrics import Precision
+from DRecPy.Evaluation.Metrics import Recall
+from DRecPy.Evaluation.Metrics import NDCG
 
 ds = get_full_dataset('ml-100k')
 
@@ -17,7 +17,7 @@ knn.fit(ds_train)
 evaluation = ranking_evaluation(knn, ds_test, interaction_threshold=5, k=list(range(1, 11)),
                                 generate_negative_pairs=False, n_pos_interactions=None,
                                 n_neg_interactions=None, seed=15, verbose=True,
-                                metrics={'P': (precision, {}),  'R': (recall, {}), 'NDCG': (ndcg, {})})
+                                metrics=[Precision(), Recall(), NDCG()])
 print('cosine sim', evaluation)
 
 # jaccard sim
@@ -27,7 +27,7 @@ knn.fit(ds_train)
 evaluation = ranking_evaluation(knn, ds_test, interaction_threshold=5, k=list(range(1, 11)),
                                 generate_negative_pairs=False, n_pos_interactions=None,
                                 n_neg_interactions=None, seed=15, verbose=True,
-                                metrics={'P': (precision, {}),  'R': (recall, {}), 'NDCG': (ndcg, {})})
+                                metrics=[Precision(), Recall(), NDCG()])
 print('jaccard sim', evaluation)
 
 # msd sim
@@ -37,7 +37,7 @@ knn.fit(ds_train)
 evaluation = ranking_evaluation(knn, ds_test, interaction_threshold=5, k=list(range(1, 11)),
                                 generate_negative_pairs=False, n_pos_interactions=None,
                                 n_neg_interactions=None, seed=15, verbose=True,
-                                metrics={'P': (precision, {}),  'R': (recall, {}), 'NDCG': (ndcg, {})})
+                                metrics=[Precision(), Recall(), NDCG()])
 print('msd sim', evaluation)
 
 
@@ -48,5 +48,5 @@ knn.fit(ds_train)
 evaluation = ranking_evaluation(knn, ds_test, interaction_threshold=5, k=list(range(1, 11)),
                                 generate_negative_pairs=False, n_pos_interactions=None,
                                 n_neg_interactions=None, seed=15, verbose=True,
-                                metrics={'P': (precision, {}),  'R': (recall, {}), 'NDCG': (ndcg, {})})
+                                metrics=[Precision(), Recall(), NDCG()])
 print('pearson corr sim', evaluation)

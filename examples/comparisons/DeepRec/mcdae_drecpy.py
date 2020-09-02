@@ -17,11 +17,11 @@ class ModifiedCDAE(CDAE):
                                           kernel_regularizer=l2_reg, autocast=False))
         for factor in self.nn_factors[1:]:
             self.nn.add(tf.keras.layers.Dense(factor, activation=tf.nn.relu, kernel_regularizer=l2_reg))
-        self._register_trainable(self.nn.trainable_variables)
+        self._register_trainable(self.nn)
 
     def _reconstruct_for_training(self, uid):
         prediction_vector, desired_vector = super(ModifiedCDAE, self)._reconstruct_for_training(uid)
         return self.nn(prediction_vector), desired_vector
 
-    def _compute_reg_loss(self, reg_rate, batch_size, **kwds):
-        return super(ModifiedCDAE, self)._compute_reg_loss(reg_rate, batch_size, **kwds) + tf.math.add_n(self.nn.losses) / (2*batch_size)
+    def _compute_reg_loss(self, reg_rate, batch_size, trainable_models, trainable_layers, trainable_weights, **kwds):
+        return super(ModifiedCDAE, self)._compute_reg_loss(reg_rate, batch_size, [], trainable_layers, trainable_weights, **kwds) + tf.math.add_n(trainable_models[0].losses) / batch_size

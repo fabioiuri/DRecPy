@@ -3,8 +3,8 @@ import pytest
 import pandas as pd
 from DRecPy.Dataset import InteractionDataset
 from DRecPy.Recommender.Baseline import UserKNN
-from DRecPy.Evaluation.Metrics import rmse
-from DRecPy.Evaluation.Metrics import mse
+from DRecPy.Evaluation.Metrics import RMSE
+from DRecPy.Evaluation.Metrics import MSE
 
 
 @pytest.fixture(scope='module')
@@ -76,15 +76,13 @@ def test_predictive_evaluation_3(model, test_interactions_ds):
 def test_predictive_evaluation_4(model, test_interactions_ds):
     """Evaluation using the RMSE metric only."""
     assert predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                                 n_test_predictions=None, skip_errors=True,
-                                 metrics={'RMSE': (rmse, {})}) == {'RMSE': 0.8165}
+                                 n_test_predictions=None, skip_errors=True, metrics=[RMSE()]) == {'RMSE': 0.8165}
 
 
 def test_predictive_evaluation_5(model, test_interactions_ds):
     """Evaluation using the MSE metric only."""
     assert predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                                 n_test_predictions=None, skip_errors=True,
-                                 metrics={'MSE': (mse, {})}) == {'MSE': 0.6667}
+                                 n_test_predictions=None, skip_errors=True, metrics=[MSE()]) == {'MSE': 0.6667}
 
 
 def test_predictive_evaluation_6(model, test_interactions_ds):
@@ -126,45 +124,22 @@ def test_predictive_evaluation_10(model, test_interactions_ds):
 
 
 def test_predictive_evaluation_11(model, test_interactions_ds):
-    """Invalid metrics value (not a dict)."""
+    """Invalid metrics value (not a list)."""
     try:
         predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                              n_test_predictions=None, skip_errors=True, metrics=[])
+                              n_test_predictions=None, skip_errors=True, metrics={})
         assert False
     except Exception as e:
-        assert str(e) == 'Expected "metrics" argument to be of type dict and found <class '"'list'"'>. ' \
-                         'Should map metric names to a tuple containing the corresponding metric function and an ' \
-                         'extra argument dict.'
+        assert str(e) == 'Expected "metrics" argument to be a list and found <class \'dict\'>. ' \
+                         'Should contain instances of PredictiveMetricABC.'
 
 
 def test_predictive_evaluation_12(model, test_interactions_ds):
-    """Invalid metrics value (dict with non-tuple values)."""
+    """Invalid metrics value (list with non-PredictiveMetricABC instances)."""
+    fun = lambda x: 1
     try:
         predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                              n_test_predictions=None, skip_errors=True, metrics={'A': rmse})
+                              n_test_predictions=None, skip_errors=True, metrics=[fun])
         assert False
     except Exception as e:
-        assert str(e) == 'Expected metric A to map to a tuple containing the corresponding metric function and an ' \
-                         'extra argument dict.'
-
-
-def test_predictive_evaluation_13(model, test_interactions_ds):
-    """Invalid metrics value (dict with tuple values containing non-callables on the first element)."""
-    try:
-        predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                              n_test_predictions=None, skip_errors=True, metrics={'A': (1, {})})
-        assert False
-    except Exception as e:
-        assert str(e) == 'Expected metric A to map to a tuple containing the corresponding metric function and an ' \
-                         'extra argument dict.'
-
-
-def test_predictive_evaluation_14(model, test_interactions_ds):
-    """Invalid metrics value (dict with tuple values containing non-dicts on the second element)."""
-    try:
-        predictive_evaluation(model, test_interactions_ds, count_none_predictions=False,
-                              n_test_predictions=None, skip_errors=True, metrics={'A': (mse, [])})
-        assert False
-    except Exception as e:
-        assert str(e) == 'Expected metric A to map to a tuple containing the corresponding metric function and an ' \
-                         'extra argument dict.'
+        assert str(e) == f'Expected metric {fun} to be an instance of type PredictiveMetricABC.'

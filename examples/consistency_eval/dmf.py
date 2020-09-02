@@ -2,8 +2,8 @@ from DRecPy.Recommender import DMF
 from DRecPy.Dataset import get_full_dataset
 from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Processes import ranking_evaluation
-from DRecPy.Evaluation.Metrics import ndcg
-from DRecPy.Evaluation.Metrics import hit_ratio
+from DRecPy.Evaluation.Metrics import NDCG
+from DRecPy.Evaluation.Metrics import HitRatio
 import time
 
 ds = get_full_dataset('ml-100k')
@@ -22,5 +22,4 @@ for nce in [True, False]:
     print("Training took", time.time() - start_train)
 
     print(ranking_evaluation(dmf, ds_test if nce else ds_test_bin, n_pos_interactions=1, n_neg_interactions=100, generate_negative_pairs=True,
-                             novelty=True, k=list(range(1, 11)), metrics={'HR': (hit_ratio, {}), 'NDCG': (ndcg, {})},
-                             seed=10))
+                             novelty=True, k=list(range(1, 11)), metrics=[HitRatio(), NDCG()], seed=10))

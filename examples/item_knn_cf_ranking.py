@@ -2,8 +2,8 @@ from DRecPy.Recommender.Baseline import ItemKNN
 from DRecPy.Dataset import get_full_dataset
 from DRecPy.Evaluation.Splits import leave_k_out
 from DRecPy.Evaluation.Processes import ranking_evaluation
-from DRecPy.Evaluation.Metrics import hit_ratio
-from DRecPy.Evaluation.Metrics import ndcg
+from DRecPy.Evaluation.Metrics import HitRatio
+from DRecPy.Evaluation.Metrics import NDCG
 import time
 
 ds_full = get_full_dataset('ml-100k')
@@ -16,6 +16,5 @@ print("Training took", time.time() - start_train)
 
 start_evaluation = time.time()
 print(ranking_evaluation(item_cf, ds_test,  n_pos_interactions=1, n_neg_interactions=100,  generate_negative_pairs=True,
-                         novelty=True, k=list(range(1, 11)), metrics={'HR': (hit_ratio, {}), 'NDCG': (ndcg, {})},
-                         seed=10))
+                         novelty=True, k=list(range(1, 11)), metrics=[HitRatio(), NDCG()], seed=10))
 print("Evaluation took", time.time() - start_evaluation)

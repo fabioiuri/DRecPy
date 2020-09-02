@@ -1,24 +1,31 @@
-from .regression import rmse
-from .regression import mse
+from .metric_abc import MetricABC
 
-from .ranking import dcg
-from .ranking import ndcg
-from .ranking import hit_ratio
-from .ranking import reciprocal_rank
-from .ranking import recall
-from .ranking import precision
-from .ranking import f_score
-from .ranking import average_precision
+from .regression import PredictiveMetricABC
+from .regression import RMSE
+from .regression import MSE
+
+from .ranking import RankingMetricABC
+from .ranking import DCG
+from .ranking import NDCG
+from .ranking import HitRatio
+from .ranking import ReciprocalRank
+from .ranking import Recall
+from .ranking import Precision
+from .ranking import FScore
+from .ranking import AveragePrecision
 
 __all__ = [
-    'mse',
-    'rmse',
-    'dcg',
-    'ndcg',
-    'hit_ratio',
-    'reciprocal_rank',
-    'recall',
-    'precision',
-    'f_score',
-    'average_precision'
+    'MetricABC',
+    'PredictiveMetricABC',
+    'RankingMetricABC',
+    'MSE',
+    'RMSE',
+    'DCG',
+    'NDCG',
+    'HitRatio',
+    'ReciprocalRank',
+    'Recall',
+    'Precision',
+    'FScore',
+    'AveragePrecision'
 ]

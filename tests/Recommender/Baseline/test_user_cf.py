@@ -1,7 +1,7 @@
 from DRecPy.Recommender.Baseline import UserKNN
 from DRecPy.Dataset import get_train_dataset
 from DRecPy.Dataset import get_test_dataset
-from DRecPy.Evaluation.Metrics import rmse
+from DRecPy.Evaluation.Metrics import RMSE
 import pytest
 
 
@@ -91,43 +91,43 @@ def test_predict_6(fit_model, test_interaction_ds):
     predictions = [fit_model.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1591
 
 
 def test_predict_7(fit_model_2, test_interaction_ds):
     predictions = [fit_model_2.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 2.7477
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 2.7477
 
 
 def test_predict_8(fit_model_use_averages, test_interaction_ds):
     predictions = [fit_model_use_averages.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1155
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1155
 
 
 def test_predict_9(fit_model_no_shrinkage, test_interaction_ds):
     predictions = [fit_model_no_shrinkage.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.2235
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.2235
 
 
 def test_predict_10(fit_model_cosine_sim, test_interaction_ds):
     predictions = [fit_model_cosine_sim.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.0628
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.0628
 
 
 def test_predict_11(fit_model_mean_aggr, test_interaction_ds):
     predictions = [fit_model_mean_aggr.predict(u, i, skip_errors=True)
                    for u, i in test_interaction_ds.values_list(['user', 'item'], to_list=True)[:100]]
     predictions = [p if p is not None else 0 for p in predictions]
-    assert round(rmse(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1599
+    assert round(RMSE()(test_interaction_ds.values_list('interaction', to_list=True)[:100], predictions), 4) == 1.1599
 
 
 def test_recommend_0(fit_model):

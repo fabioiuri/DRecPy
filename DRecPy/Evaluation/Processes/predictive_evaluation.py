@@ -1,5 +1,6 @@
-from DRecPy.Evaluation.Metrics import rmse
-from DRecPy.Evaluation.Metrics import mse
+from DRecPy.Evaluation.Metrics import PredictiveMetricABC
+from DRecPy.Evaluation.Metrics import RMSE
+from DRecPy.Evaluation.Metrics import MSE
 from tqdm import tqdm
 
 
@@ -16,10 +17,7 @@ def predictive_evaluation(model, ds_test=None, count_none_predictions=False, n_t
             Default: predict for every (user, item) pair on the test dataset.
         skip_errors: A boolean indicating whether to ignore errors produced during the predict calls, or not.
             Default: False.
-        metrics: An optional dict mapping the names of the metrics to a tuple containing the metric eval function as the
-            first element, and the default arguments to call it as the second element.
-            Eg: {'RMSE': (rmse, {beta: 1.2})}. Default: dict with the following metrics: root-mean-squared error and
-            mean-squared error.
+        metrics: An optional list containing instances of PredictiveMetricABC. Default: [RMSE(), MSE()].
         verbose: A boolean indicating whether state logs should be produced or not. Default: true.
 
     Returns:
@@ -30,19 +28,13 @@ def predictive_evaluation(model, ds_test=None, count_none_predictions=False, n_t
 
     assert n_test_predictions > 0, f'The number of test users ({n_test_predictions}) should be > 0.'
 
-    metrics = kwds.get('metrics', {
-        'RMSE': (rmse, {}),
-        'MSE': (mse, {})
-    })
+    metrics = kwds.get('metrics', [RMSE(), MSE()])
 
-    assert type(metrics) is dict, f'Expected "metrics" argument to be of type dict and found {type(metrics)}. ' \
-        f'Should map metric names to a tuple containing the corresponding metric function and an extra argument dict.'
+    assert isinstance(metrics, list), f'Expected "metrics" argument to be a list and found {type(metrics)}. ' \
+        f'Should contain instances of PredictiveMetricABC.'
 
     for m in metrics:
-        err_msg = f'Expected metric {m} to map to a tuple containing the corresponding metric function and an extra argument dict.'
-        assert type(metrics[m]) is tuple, err_msg
-        assert callable(metrics[m][0]), err_msg
-        assert type(metrics[m][1]) is dict, err_msg
+        assert isinstance(m, PredictiveMetricABC), f'Expected metric {m} to be an instance of type PredictiveMetricABC.'
 
     n_test_predictions = min(n_test_predictions, len(ds_test))
     if kwds.get('verbose', True):
@@ -68,10 +60,6 @@ def predictive_evaluation(model, ds_test=None, count_none_predictions=False, n_t
         num_predictions_made += 1
 
     # evaluate performance
-    metric_values = {}
-    for m in metrics:
-        metric_fn = metrics[m][0]
-        params = {**metrics[m][1], 'y_true': y_true, 'y_pred': y_pred}
-        metric_values[m] = round(metric_fn(**params), 4)
+    metric_values = {m.name: round(m(y_true, y_pred), 4) for m in metrics}
 
     return metric_values

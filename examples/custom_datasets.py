@@ -12,7 +12,7 @@ with open('tmp.csv', 'w') as f:
 ds_memory = InteractionDataset('tmp.csv', columns=['user', 'item', 'interaction'])
 print('all values:', ds_memory.values_list())
 print('filtered values:', ds_memory.select('interaction > 3.5').values_list())
-ds_memory_scaled = ds_memory.__copy__()
+ds_memory_scaled = ds_memory.copy()
 ds_memory_scaled.apply('interaction', lambda x: x / ds_memory.max('interaction'))
 print('all values scaled:', ds_memory_scaled.values_list())
 
