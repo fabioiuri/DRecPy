@@ -19,7 +19,7 @@ with open("requirements.txt", "r") as fh:
 
 setup(
     name="DRecPy",
-    version="0.1.0",
+    version="0.2.0",
     author="Fabio Colaço",
     author_email="fabioiuri@live.com",
     description="Deep Recommenders with Python: "
@@ -31,7 +31,7 @@ setup(
     install_requires=requirements,
     classifiers=['Intended Audience :: Developers', 'Intended Audience :: Education',
                  'Intended Audience :: Science/Research', 'License :: OSI Approved :: MIT License',
-                 'Programming Language :: Python :: 3', 'Development Status :: 2 - Pre-Alpha',
+                 'Programming Language :: Python :: 3', 'Development Status :: 3 - Alpha',
                  'Topic :: Scientific/Engineering'],
     keywords="recommender, recommendation, system, machine learning, deep learning"
 )
