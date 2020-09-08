@@ -9,7 +9,7 @@ from .file_utils import is_stored
 
 class DatasetReadConfig:
     def __init__(self, url, full_file, columns, delimiter, encoding='utf8',
-                 train_file=None, test_file=None, unzip_folder=None, has_header=False):
+                 train_file=None, test_file=None, unzip_folder=None, has_header=False, unzip=True):
         self.url = url
         self.train_file = train_file
         self.test_file = test_file
@@ -19,6 +19,7 @@ class DatasetReadConfig:
         self.encoding = encoding
         self.unzip_folder = unzip_folder
         self.has_header = has_header
+        self.unzip = unzip
 
 
 DATASETS = {
@@ -45,12 +46,13 @@ DATASETS = {
                                 delimiter=',',
                                 unzip_folder='ml-20m',
                                 has_header=True),
-    'bx': DatasetReadConfig(url='http://www2.informatik.uni-freiburg.de/~cziegler/BX/BX-CSV-Dump.zip',
+    'bx': DatasetReadConfig(url='https://github.com/ashwanidv100/Recommendation-System---Book-Crossing-Dataset/raw/master/BX-CSV-Dump/BX-Book-Ratings.csv',
                             full_file='BX-Book-Ratings.csv',
                             columns=['user', 'item', 'interaction'],
                             delimiter=';',
                             encoding='latin1',
-                            has_header=True)
+                            has_header=True,
+                            unzip=False)
 }
 
 
@@ -64,24 +66,28 @@ def download_dataset(ds_name):
     if not os.path.exists(dataset_path):
         os.makedirs(dataset_path)
 
-    print('> Extracting files from zip')
-    tmp_path = os.path.join(dataset_path, 'tmp.zip')
-    with open(tmp_path, "wb") as f:
-        f.write(data)
+    if ds_options.unzip:
+        print('> Extracting files from zip')
+        tmp_path = os.path.join(dataset_path, 'tmp.zip')
+        with open(tmp_path, "wb") as f:
+            f.write(data)
 
-    with ZipFile(tmp_path, 'r') as tmp_zip:
-        tmp_zip.extractall(dataset_path)
+        with ZipFile(tmp_path, 'r') as tmp_zip:
+            tmp_zip.extractall(dataset_path)
 
-    # if dataset comes in folder, move it to dataset root folder
-    if ds_options.unzip_folder is not None:
-        src = os.path.join(dataset_path, ds_options.unzip_folder)
-        for f in os.listdir(src):
-            _from = os.path.join(src, f)
-            _to = os.path.join(dataset_path, f)
-            os.rename(_from, _to)
-        os.removedirs(src)
+        # if dataset comes in folder, move it to dataset root folder
+        if ds_options.unzip_folder is not None:
+            src = os.path.join(dataset_path, ds_options.unzip_folder)
+            for f in os.listdir(src):
+                _from = os.path.join(src, f)
+                _to = os.path.join(dataset_path, f)
+                os.rename(_from, _to)
+            os.removedirs(src)
 
-    os.remove(tmp_path)
+        os.remove(tmp_path)
+    else:
+        with open(os.path.join(dataset_path, ds_options.full_file), 'w') as f:
+            f.write(data.decode(ds_options.encoding))
 
 
 def get_dataset(ds_name, path, is_generated=False, force_out_of_memory=False, verbose=True, **kwds):
