@@ -41,14 +41,17 @@ def matrix_split(interaction_dataset, user_test_ratio=0.2, item_test_ratio=0.2, 
 
     rng = random.Random(seed)
     ds_unique_users = interaction_dataset.unique('user')
-    test_users = rng.sample(ds_unique_users.values_list('user', to_list=True), math.floor(len(ds_unique_users) * user_test_ratio))
+    all_users = ds_unique_users.values_list('user', to_list=True)
+    test_users_set = set(rng.sample(all_users, math.floor(len(all_users) * user_test_ratio)))
+
     ds_unique_items = interaction_dataset.unique('item')
-    test_items = rng.sample(ds_unique_items.values_list('item', to_list=True), math.floor(len(ds_unique_items) * item_test_ratio))
+    test_items_set = set(rng.sample(ds_unique_items.values_list('item', to_list=True),
+                                    math.floor(len(ds_unique_items) * item_test_ratio)))
 
     if kwds.get('verbose', True):
-        _iter = tqdm(test_users, total=len(test_users), desc='Creating user split tasks')
+        _iter = tqdm(all_users, total=len(all_users), desc='Creating user split tasks')
     else:
-        _iter = test_users
+        _iter = all_users
 
     global n_tasks_done
     n_tasks_done, n_tasks = 0, 0
@@ -58,7 +61,7 @@ def matrix_split(interaction_dataset, user_test_ratio=0.2, item_test_ratio=0.2, 
     for user in _iter:
         n_tasks += 1
         pool.apply_async(_matrix_split_user, (interaction_dataset, train_rids_to_rem, test_rids, user,
-                                              min_user_interactions, test_items))
+                                              min_user_interactions, test_items_set, test_users_set))
 
     pool.close()  # Done adding tasks
 
@@ -80,18 +83,19 @@ def matrix_split(interaction_dataset, user_test_ratio=0.2, item_test_ratio=0.2, 
     return ds_train, ds_test
 
 
-def _matrix_split_user(interaction_dataset, train_rids_to_rem, test_rids, user, min_user_interactions, test_items):
+def _matrix_split_user(interaction_dataset, train_rids_to_rem, test_rids, user, min_user_interactions, test_items_set,
+                       test_users_set):
     global n_tasks_done
     user_rows_ds = interaction_dataset.select(f'user == {user}')
 
     if len(user_rows_ds) < min_user_interactions:  # not enough user interactions
         with train_rem_lock:
             train_rids_to_rem.extend([rid for rid in user_rows_ds.values('rid', to_list=True)])
-    else:
+    elif user in test_users_set:
         to_test = []
         for rid, item in user_rows_ds.values(['rid', 'item'], to_list=True):
             with test_lock:
-                if item in test_items:
+                if item in test_items_set:
                     to_test.append(rid)
 
         if len(to_test) < len(user_rows_ds):
