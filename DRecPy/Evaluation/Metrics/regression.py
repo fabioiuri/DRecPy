@@ -1,5 +1,6 @@
 from math import sqrt
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 from abc import abstractmethod
 from .metric_abc import MetricABC
 
@@ -28,3 +29,9 @@ class RMSE(PredictiveMetricABC):
     """Root Mean Squared Error."""
     def __call__(self, y_true, y_pred):
         return sqrt(mean_squared_error(y_true, y_pred))
+
+
+class MAE(PredictiveMetricABC):
+    """Mean absolute Error."""
+    def __call__(self, y_true, y_pred):
+        return mean_absolute_error(y_true, y_pred)

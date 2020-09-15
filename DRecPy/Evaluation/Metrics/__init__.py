@@ -3,6 +3,7 @@ from .metric_abc import MetricABC
 from .regression import PredictiveMetricABC
 from .regression import RMSE
 from .regression import MSE
+from .regression import MAE
 
 from .ranking import RankingMetricABC
 from .ranking import DCG
@@ -20,6 +21,7 @@ __all__ = [
     'RankingMetricABC',
     'MSE',
     'RMSE',
+    'MAE',
     'DCG',
     'NDCG',
     'HitRatio',
