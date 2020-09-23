@@ -44,6 +44,8 @@ For more information about the framework and its components, please visit the [d
 Here's a brief overview of the general call workflow for every recommender:
 ![Call Worlflow](https://github.com/fabioiuri/DRecPy/blob/master/examples/images/call_workflow.png?raw=true)
 
+If you use DRecPy for any published research, we'd appreciate a citation:
+> Fábio Colaço, Márcia Barros, and Francisco M. Couto. 2020. DRecPy: A Python Framework for Developing Deep Learning-Based Recommenders. In Fourteenth ACM Conference on Recommender Systems (RecSys '20). Association for Computing Machinery, New York, NY, USA, 675–680. DOI:https://doi.org/10.1145/3383313.3418483
 
 Installation
 ------------
