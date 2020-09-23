@@ -14,7 +14,7 @@ class ListSampler:
         n_targets: An optional integer defining the number of target records in each group sequence. If None is
             provided, no negative records will be sampled. Default: 5.
         negative_ids_col: A string representing the name of the column to use for sampling negative identifiers. This is
-            only used if
+            only used if n_targets is specified. Default: 'iid'.
         interaction_threshold: An optional integer that is used as the boundary interaction value between positive and
             negative records. All values above or equal to interaction_threshold are considered positive,
             and all values bellow are considered negative. Also, all the records not present on the group selection are
@@ -30,7 +30,7 @@ class ListSampler:
     """
     max_consecutive_tries = 20
 
-    def __init__(self, interaction_dataset, group_columns, neg_ratio=3, n_targets=5, negative_ids_col='item',
+    def __init__(self, interaction_dataset, group_columns, neg_ratio=3, n_targets=5, negative_ids_col='iid',
                  interaction_threshold=None, sort_column=None, min_positive_records=8, max_positive_records=None,
                  seed=None):
         assert interaction_dataset is not None, 'An interaction dataset instance is required.'
@@ -68,6 +68,7 @@ class ListSampler:
         self.max_positive_records = max_positive_records
         self.rng = random.Random(seed)
         self.unique_groups = self.interaction_dataset.unique(group_columns).values_list(group_columns, to_list=True)
+        self.negative_ids_col = negative_ids_col
         self.unique_negative_ids = set(self.interaction_dataset.unique(negative_ids_col).values_list(negative_ids_col, to_list=True))
 
     def sample_group_records(self, n=16):
@@ -126,12 +127,12 @@ class ListSampler:
                     group_records_list.append(positive_group_records)
                     break
 
-                eligible_negative_ids = self.unique_negative_ids.difference(set([rec['iid'] for rec in all_positive_group_records]))
+                eligible_negative_ids = self.unique_negative_ids.difference(set([rec[self.negative_ids_col] for rec in all_positive_group_records]))
                 if padding is None:
                     target_group_records = positive_group_records[self.n_targets:]
                     positive_group_records = positive_group_records[:self.n_targets]
                 else:
-                    target_group_records = all_positive_group_records [padding + self.max_positive_records:padding + self.max_positive_records + self.n_targets]
+                    target_group_records = all_positive_group_records[padding + self.max_positive_records:padding + self.max_positive_records + self.n_targets]
 
                 # sample negative ids or skip if not possible
                 n_negative_ids = self.neg_ratio * len(target_group_records)
