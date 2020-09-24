@@ -388,15 +388,15 @@ class RecommenderABC(ABC):
         provided item, user pair. uid and iid are internal ids."""
         pass
 
-    def recommend(self, user_id, n=None, novelty=True, **kwds):
+    def recommend(self, user_id, n=None, novelty=True, interaction_threshold=None, **kwds):
         """Computes a recommendation list for the given user and with the requested characteristics.
 
         Args:
             user_id: A string or integer representing the user id.
             n: An integer representing the number of recommended items.
             novelty: An optional boolean indicating if we only novelty recommendations or not. Default: True.
-            interaction_threshold: Optional float value that represents the similarity value required to consider
-                an item to be a useful recommendation Default: self.interaction_threshold.
+            interaction_threshold: Optional float value that represents the value required to consider
+                an item to be a useful recommendation Default: None.
 
         Returns:
             A list containing recommendations in the form of (similarity, item) tuples.
@@ -406,15 +406,16 @@ class RecommenderABC(ABC):
 
         if n is None: n = self.n_items
 
-        threshold = kwds.get('interaction_threshold', self.interaction_threshold)
         uid = self.interaction_dataset.user_to_uid(user_id)
-        recs = self._recommend(uid, n, novelty, threshold)
+        recs = self._recommend(uid, n, novelty, interaction_threshold)
         return [(r, self.interaction_dataset.iid_to_item(iid)) for r, iid in recs]
 
     def _recommend(self, uid, n, novelty, threshold):
         """Returns a list containing recommendations in the form of (similarity, item) tuples. uid is an internal id."""
         iids = range(0, self.n_items)
         ranked_items = self._rank(uid, iids, n, novelty)
+        if threshold is None:
+            return ranked_items
         return list(filter(lambda x: x[0] >= threshold, ranked_items))
 
     def rank(self, user_id, item_ids, novelty=True, skip_invalid_items=True, **kwds):
