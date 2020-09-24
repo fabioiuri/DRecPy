@@ -23,6 +23,14 @@ DRecPy.Recommender.dmf module
     :undoc-members:
     :show-inheritance:
 
+DRecPy.Recommender.caser module
+-----------------------------
+
+.. automodule:: DRecPy.Recommender.caser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 DRecPy.Recommender.recommender\_abc module
 ------------------------------------------
 
