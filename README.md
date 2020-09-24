@@ -161,6 +161,8 @@ Implemented Recommenders
 |:----------------:|:---------:|
 | Learn-to-rank    | [CDAE (Collaborative Denoising Auto-Encoder)](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.cdae) |
 | Learn-to-rank    | [DMF (Deep Matrix Factorization)](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.dmf)              |
+||
+| Sequential    | [Caser](https://drecpy.readthedocs.io/en/latest/api_docs/DRecPy.Recommender.html#module-DRecPy.Recommender.caser)              |
 
 #### Non-Deep Learning-Based
 | Recommender Type |   Name    |
