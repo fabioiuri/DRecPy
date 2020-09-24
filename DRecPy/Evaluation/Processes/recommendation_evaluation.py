@@ -16,7 +16,7 @@ metric_lock = Lock()
 
 
 def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_pos_interactions=None, novelty=False,
-                              seed=0, max_concurrent_threads=4, **kwds):
+                              ignore_low_predictions_threshold=None, seed=0, max_concurrent_threads=4, **kwds):
     """Executes a recommendation evaluation process, where the given model will be evaluated under the provided settings.
     This function is not thread-safe (i.e. concurrent calls might produce unexpected results). Instead of trying this,
     increase the max_concurrent_threads argument to speed up the process (if you've the available cores).
@@ -39,6 +39,10 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
             considered negative. Default: model.interaction_threshold.
         novelty: A boolean indicating whether only novel recommendations should be taken into account or not.
             Default: False.
+        ignore_low_predictions_threshold: An optional value representing the interaction value threshold to consider a
+            model prediction, if the item-prediction is higher or equal than the specified, or to skip it if it is less
+            than the specified, i.e. remove those items with low model prediction from the recommendation list.
+            Default: None.
         metrics: An optional list containing instances of RankingMetricABC. Default: [Precision(), Recall(),
             HitRatio(), NDCG()].
         max_concurrent_threads: An optional integer representing the max concurrent threads to use. Default: 4.
@@ -91,7 +95,8 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
         if num_users_made >= n_test_users: break  # reach max number of rankings
 
         pool.apply_async(_recommendation_evaluation_user, (model, user, ds_test, interaction_threshold,
-                                                           n_pos_interactions, metrics, novelty, metric_sums, k,
+                                                           n_pos_interactions, metrics, novelty,
+                                                           ignore_low_predictions_threshold, metric_sums, k,
                                                            random.Random(seed)))
         n_tasks += 1
         num_users_made += 1
@@ -129,7 +134,7 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
 
 
 def _recommendation_evaluation_user(model, user, ds_test, interaction_threshold, n_pos_interactions, metrics,
-                                    novelty, metric_sums, k, rng):
+                                    novelty, ignore_low_predictions_threshold, metric_sums, k, rng):
     """Gathers the user positive and negative interactions, applies a ranking on them, and evaluates the provided
     metrics, adding the results to the metric_sums structure."""
     global n_tasks_done
@@ -157,7 +162,7 @@ def _recommendation_evaluation_user(model, user, ds_test, interaction_threshold,
         return
 
     recommendations = [item for _, item in model.recommend(user, n=max(k), novelty=novelty, skip_invalid_items=True,
-                                                           interaction_threshold=model.min_interaction)]
+                                                           interaction_threshold=ignore_low_predictions_threshold)]
     relevancies = {item: (user_ds.select_one(f'item == {item}', ['interaction'], to_list=True) or 0)
                    for item in set(user_interacted_items).union(set(recommendations))}
 

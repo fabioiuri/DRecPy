@@ -176,3 +176,10 @@ def test_recommendation_evaluation_17(model, interactions_ds):
         assert False
     except Exception as e:
         assert str(e) == f'Expected metric {fun} to be an instance of type RankingMetricABC.'
+
+
+def test_recommendation_evaluation_18(model, interactions_ds):
+    """Evaluation with a custom ignore low predictions threshold."""
+    assert recommendation_evaluation(model, interactions_ds[1], cn_test_users=None, k=2, n_pos_interactions=None,
+                                     novelty=False, ignore_low_predictions_threshold=2) == \
+            {'HitRatio@2': 0.0167, 'NDCG@2': 0.0189, 'Precision@2': 0.02, 'Recall@2': 0.0167}
