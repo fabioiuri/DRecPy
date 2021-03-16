@@ -652,6 +652,20 @@ def test_select_random_generator_9(mem_interactions_floats):
         assert str(e) == 'No records were found after applying the given query.'
 
 
+def test_select_random_generator_10(mem_interactions_floats):
+    mem_interactions_floats.assign_internal_ids()
+    interaction = next(mem_interactions_floats.select_random_generator('rid > 1', seed=23))
+    assert interaction['uid'] == 0
+    assert isinstance(interaction['uid'], int)
+
+
+def test_select_random_generator_11(mem_interactions_floats):
+    mem_interactions_floats.assign_internal_ids()
+    interaction = next(mem_interactions_floats.select_random_generator('rid > 1', seed=23))
+    assert interaction['iid'] == 3
+    assert isinstance(interaction['iid'], int)
+
+
 """ null_interaction_pair_generator """
 def test_null_interaction_pair_generator_0(mem_interactions):
     try:
