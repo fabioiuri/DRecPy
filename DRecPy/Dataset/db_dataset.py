@@ -156,27 +156,28 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
     def select_random_generator(self, query=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
-        assert len(self) > 0, 'No records were found.'
 
         if query is None:
-            new_ds = self
-        else:
-            new_ds = self.copy()
-            query_conditions = new_ds._parse_query(query)
-            new_state = new_ds._build_new_state(query_conditions)
-            new_ds._update_state(new_state)
+            return self._select_random_generator(seed)
 
-        assert len(new_ds) > 0, 'No records were found after applying the given query.'
+        new_ds = self.copy()
+        query_conditions = new_ds._parse_query(query)
+        new_state = new_ds._build_new_state(query_conditions)
+        new_ds._update_state(new_state)
+        return new_ds._select_random_generator(seed)
+
+    def _select_random_generator(self, seed=None):
+        assert len(self) > 0, 'No records were found to sample from.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
 
-        c = new_ds._open_cursor()
-        max_uid = new_ds.max('uid')
+        c = self._open_cursor()
+        max_uid = self.max('uid')
         while True:
             random_uid = rng.randint(0, max_uid)
-            query_conditions = new_ds._parse_query(f'uid == {random_uid}')
-            new_state = new_ds._build_new_state(query_conditions)
+            query_conditions = self._parse_query(f'uid == {random_uid}')
+            new_state = self._build_new_state(query_conditions)
             count = c.execute(f'SELECT COUNT(*) FROM ({new_state})').fetchone()[0]
             if count == 0: continue
 
@@ -195,7 +196,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
 
     def null_interaction_pair_generator(self, interaction_threshold=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
-        assert len(self) > 0, 'No records were found.'
+        assert len(self) > 0, 'No records were found to sample from.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
@@ -204,18 +205,22 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
             existing_null_pair_gen = None
         else:
             try:
-                existing_null_pair_gen = self.select_random_generator(query=f'interaction < {interaction_threshold}',
-                                                                      seed=seed)
+                negative_ds = self.copy()
+                query_conditions = negative_ds._parse_query(f'interaction < {interaction_threshold}')
+                new_state = negative_ds._build_new_state(query_conditions)
+                negative_ds._update_state(new_state)
+                existing_null_pair_gen = negative_ds._select_random_generator(seed)
                 next(existing_null_pair_gen)  # force error if there's no matches
             except:
                 existing_null_pair_gen = None
 
         max_uid = self.max('uid')
         max_iid = self.max('iid')
+        n_possible_combs = max_uid * max_iid
 
         c = self._open_cursor()
         while True:
-            if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
+            if existing_null_pair_gen is not None and rng.randint(0, n_possible_combs + len(negative_ds)) >= n_possible_combs:
                 existing_null_pair = next(existing_null_pair_gen)
                 yield existing_null_pair['uid'], existing_null_pair['iid']
             else:

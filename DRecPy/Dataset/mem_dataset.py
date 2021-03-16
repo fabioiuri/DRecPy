@@ -4,6 +4,7 @@ import pandas as pd
 from pandas.api.types import is_string_dtype
 import random
 from scipy.sparse import csr_matrix
+import numpy as np
 
 
 class MemoryInteractionDataset(InteractionDatasetABC):
@@ -102,11 +103,13 @@ class MemoryInteractionDataset(InteractionDatasetABC):
         assert len(self) > 0, 'No records were found.'
 
         if query is None:
-            df = self._df
-        else:
-            df = self._apply_query(query, in_place=False)
+            return self._select_random_generator(self._df, seed)
 
-        assert df.shape[0] > 0, 'No records were found after applying the given query.'
+        new_df = self._apply_query(query, in_place=False)
+        return self._select_random_generator(new_df, seed)
+
+    def _select_random_generator(self, df, seed=None):
+        assert df.shape[0] > 0, 'No records were found to sample from.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
@@ -127,7 +130,7 @@ class MemoryInteractionDataset(InteractionDatasetABC):
 
     def null_interaction_pair_generator(self, interaction_threshold=None, seed=None):
         assert self.has_internal_ids is True, 'No internal ids assigned yet.'
-        assert len(self) > 0, 'No records were found.'
+        assert len(self) > 0, 'No records were found to sample from.'
 
         rng = random
         if seed is not None: rng = random.Random(seed)
@@ -136,19 +139,20 @@ class MemoryInteractionDataset(InteractionDatasetABC):
             existing_null_pair_gen = None
         else:
             try:
-                existing_null_pair_gen = self.select_random_generator(query=f'interaction < {interaction_threshold}',
-                                                                      seed=seed)
+                negative_ds = self._apply_query(f'interaction < {interaction_threshold}', in_place=False)
+                existing_null_pair_gen = self.select_random_generator(negative_ds, seed=seed)
                 next(existing_null_pair_gen)  # force error if there's no matches
             except:
                 existing_null_pair_gen = None
 
         max_uid = self.max('uid')
         max_iid = self.max('iid')
+        n_possible_combs = max_uid.astype(np.float) * max_iid.astype(np.float)
 
         uid_values = self._df['uid'].values
         iid_values = self._df['iid'].values
         while True:
-            if existing_null_pair_gen is not None and rng.randint(0, 5) == 0:
+            if existing_null_pair_gen is not None and rng.randint(0, n_possible_combs + len(negative_ds)) >= n_possible_combs:
                 existing_null_pair = next(existing_null_pair_gen)
                 yield existing_null_pair['uid'], existing_null_pair['iid']
             else:

@@ -7,4 +7,3 @@
 - Add item->iid and user->uid query optimizaztion to the db interaction dataset (already done on mem)
 - Add better structure to the Splits submodule, so that its easier to understand what values are passed through during evaluation processes.
 - Add better structure to the Processes submodule, so that its easier to understand what values are passed through during evaluation processes.
-- null_interaction_pair_generator: if interaction_threshold is provided, should also sample negative pairs from the out-of-dataset

@@ -598,7 +598,7 @@ def test_select_random_generator_3(db_interactions_with_iids):
         next(db_interactions_with_iids.select_random_generator('interaction > 8.0', seed=23))
         assert False
     except Exception as e:
-        assert str(e) == 'No records were found after applying the given query.'
+        assert str(e) == 'No records were found to sample from.'
 
 
 def test_select_random_generator_4(db_interactions_with_iids):
@@ -606,7 +606,7 @@ def test_select_random_generator_4(db_interactions_with_iids):
         next(db_interactions_with_iids.select('interaction > 8.0').select_random_generator(seed=23))
         assert False
     except Exception as e:
-        assert str(e) == 'No records were found.'
+        assert str(e) == 'No records were found to sample from.'
 
 
 def test_select_random_generator_5(db_interactions_with_iids):
@@ -636,7 +636,7 @@ def test_select_random_generator_9(db_interactions_floats):
         next(db_interactions_floats.select_random_generator('interaction > 5.6', seed=23))
         assert False
     except Exception as e:
-        assert str(e) == 'No records were found after applying the given query.'
+        assert str(e) == 'No records were found to sample from.'
 
 
 def test_select_random_generator_10(db_interactions_floats):
@@ -689,7 +689,7 @@ def test_null_interaction_pair_generator_5(db_interactions_with_iids):
         next(db_interactions_with_iids.select('interaction > 8').null_interaction_pair_generator(seed=23))
         assert False
     except Exception as e:
-        assert str(e) == 'No records were found.'
+        assert str(e) == 'No records were found to sample from.'
 
 
 """ select_one """
