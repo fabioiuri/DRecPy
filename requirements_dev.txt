@@ -1,4 +1,4 @@
 pytest
-urllib3>=1.21.1,<1.22
+urllib3>=1.24.2,<1.25
 Sphinx>=1.8.0,<1.9
 sphinx_rtd_theme
