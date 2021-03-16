@@ -11,6 +11,7 @@ from os import remove
 from os import rename
 from os.path import isfile
 from os.path import join
+from os.path import expanduser
 from scipy.sparse import csr_matrix
 
 
@@ -51,6 +52,7 @@ class DatabaseInteractionDataset(InteractionDatasetABC):
         if kwds.get('item_vec_cache_limit', None) is not None:
             self._item_vec_cache_limit = kwds.get('item_vec_cache_limit')
 
+        path = expanduser(path)
         if path.endswith('.sqlite'):
             self._load_from_db(path)
         else:
